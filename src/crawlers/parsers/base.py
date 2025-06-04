@@ -1,0 +1,24 @@
+import logging
+from abc import ABC, abstractmethod
+
+from ..models import Source, PostDraft
+
+logger = logging.getLogger(__name__)
+
+
+class BaseParser(ABC):
+
+    def __init__(self, src: Source) -> None:
+        self._src = src
+
+    @abstractmethod
+    def parse_one(self, data: bytes) -> PostDraft: ...
+
+    @abstractmethod
+    def parse_many(self, data: bytes) -> list[PostDraft]: ...
+
+
+class BaseParserFactory(ABC):
+
+    @abstractmethod
+    def create(self, src: Source) -> BaseParser: ...
