@@ -13,6 +13,9 @@ class BaseFetcher(ABC):
     @abstractmethod
     def fetch(self, url: str) -> bytes: ...
 
+    @abstractmethod
+    def close(self) -> None: ...
+
 
 class BaseFetcherFactory(ABC):
 
