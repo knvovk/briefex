@@ -1,7 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 
-from ..models import Source, PostDraft
+from ..models import PostDraft, Source
 
 logger = logging.getLogger(__name__)
 

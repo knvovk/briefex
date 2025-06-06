@@ -2,8 +2,9 @@ import logging
 from typing import override
 
 import utils
-from .base import BaseParser
+
 from ..models import PostDraft
+from .base import BaseParser
 
 logger = logging.getLogger(__name__)
 
