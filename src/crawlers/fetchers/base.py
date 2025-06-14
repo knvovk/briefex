@@ -19,5 +19,9 @@ class BaseFetcher(ABC):
 
 class BaseFetcherFactory(ABC):
 
+    def __init__(self, *args, **kwargs) -> None:
+        self._args = args
+        self._kwargs = kwargs
+
     @abstractmethod
-    def create(self, src_type: SourceType, *args, **kwargs) -> BaseFetcher: ...
+    def create(self, src_type: SourceType) -> BaseFetcher: ...

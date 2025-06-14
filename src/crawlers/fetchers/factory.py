@@ -35,8 +35,9 @@ def register(src_type: SourceType) -> Callable[[type[BaseFetcher]], type[BaseFet
 
 class FetcherFactory(BaseFetcherFactory):
 
-    def __init__(self) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         try:
+            super().__init__(*args, **kwargs)
             registered_fetchers = self.get_registered_fetcher_types()
             logger.info(
                 "FetcherFactory initialized with %d registered fetchers: %s",
@@ -50,7 +51,7 @@ class FetcherFactory(BaseFetcherFactory):
             ) from exc
 
     @override
-    def create(self, src_type: SourceType, *args, **kwargs) -> BaseFetcher:
+    def create(self, src_type: SourceType) -> BaseFetcher:
         logger.debug("Creating fetcher for %s", src_type)
         if not src_type:
             raise InvalidSourceError(source_url="unknown", reason="Source type is not specified")
@@ -68,7 +69,7 @@ class FetcherFactory(BaseFetcherFactory):
             logger.debug("Found matching fetcher class: %s", fetcher_cls.__name__)
 
             try:
-                fetcher = fetcher_cls(*args, **kwargs)
+                fetcher = fetcher_cls(*self._args, **self._kwargs)
                 logger.info("%s initialized for %s", fetcher.__class__.__name__, src_type)
                 return fetcher
 
