@@ -1,5 +1,18 @@
 from typing import Any, Final
 
+__all__ = [
+    "DatabaseError",
+    "ConnectionError",
+    "TransactionError",
+    "ModelNotFoundError",
+    "ValidationError",
+    "DuplicateError",
+    "ConstraintViolationError",
+    "QueryExecutionError",
+    "DatabaseConfigurationError",
+    "map_sqlalchemy_error",
+]
+
 
 class DatabaseError(Exception):
     default_message: str = "Database error"
