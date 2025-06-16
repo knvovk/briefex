@@ -2,10 +2,12 @@ import logging
 import random
 import time
 from typing import override
+from urllib.parse import urlparse
 
 import requests
 import requests.adapters
-from requests.exceptions import ConnectionError, HTTPError, RequestException, Timeout
+from pydantic import BaseModel
+from requests.exceptions import ConnectionError, RequestException, Timeout
 
 import utils
 
@@ -25,111 +27,138 @@ from .factory import register
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Edge/120.0.2210.91 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_1) AppleWebKit/605.1.15 "
-    "(KHTML, like Gecko) Version/17.1 Safari/605.1.15",
-]
-DEFAULT_REQUEST_TIMEOUT = 30
-DEFAULT_POOL_CONNECTIONS = 100
-DEFAULT_POOL_MAXSIZE = 100
-DEFAULT_MAX_RETRIES = 3
-DEFAULT_RETRY_DELAY = 1.0
 
-MAX_RETRY_DELAY = 60.0
+class HTMLFetcherConfig(BaseModel):
+    user_agents: list[str]
+    request_timeout: int
+    pool_connections: int
+    pool_maxsize: int
+    max_retries: int
+    retry_delay: float
+    max_retry_delay: float = 60.0
 
-HTTP_SCHEMA = "http://"
-HTTPS_SCHEMA = "https://"
+
+DEFAULT_CONFIG = HTMLFetcherConfig(
+    user_agents=[
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Edge/120.0.2210.91 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_1) AppleWebKit/605.1.15 "
+        "(KHTML, like Gecko) Version/17.1 Safari/605.1.15",
+    ],
+    request_timeout=30,
+    pool_connections=100,
+    pool_maxsize=100,
+    max_retries=3,
+    retry_delay=1.0,
+)
+
+
+class HTTPStatusCode:
+    OK = 200
+    FOUND = 302
+    BAD_REQUEST = 400
+    UNAUTHORIZED = 401
+    FORBIDDEN = 403
+    NOT_FOUND = 404
+    TOO_MANY_REQUESTS = 429
+    INTERNAL_SERVER_ERROR = 500
+    SERVICE_UNAVAILABLE = 503
 
 
 @register(SourceType.HTML)
 class HTMLFetcher(BaseFetcher):
 
     def __init__(self, *args, **kwargs) -> None:
-        try:
-            super().__init__(*args, **kwargs)
-            self._session: requests.Session | None = None
-
-            self._user_agents = kwargs.get("user_agents", DEFAULT_USER_AGENTS)
-            self._request_timeout = kwargs.get("request_timeout", DEFAULT_REQUEST_TIMEOUT)
-            self._pool_connections = kwargs.get("pool_connections", DEFAULT_POOL_CONNECTIONS)
-            self._pool_maxsize = kwargs.get("pool_maxsize", DEFAULT_POOL_MAXSIZE)
-            self._max_retries = kwargs.get("max_retries", DEFAULT_MAX_RETRIES)
-            self._retry_delay = kwargs.get("retry_delay", DEFAULT_RETRY_DELAY)
-
-            self._setup_session()
-
-            logger.debug(
-                "%s initialized with user_agents=%s, request_timeout=%d, "
-                "pool_connections=%d, pool_maxsize=%d, max_retries=%d",
-                self.__class__.__name__,
-                self._user_agents,
-                self._request_timeout,
-                self._pool_connections,
-                self._pool_maxsize,
-                self._max_retries,
-            )
-
-        except Exception as exc:
-            logger.error("Error initializing HTMLFetcher: %s", exc)
-            raise CrawlerConfigurationError(
-                issue=f"Error initializing HTMLFetcher: {exc}",
-                component="fetcher_initialization",
-            ) from exc
+        super().__init__(*args, **kwargs)
+        self._session: requests.Session | None = None
+        self._config = self._build_config(kwargs)
+        self._setup_session()
+        self._log_initialization()
 
     @override
     def fetch(self, url: str) -> bytes:
-        logger.info("Starting HTML fetch process for %s", url)
+        logger.info("Fetching HTML content from %s", url)
         self._validate_url(url)
         headers = {"User-Agent": self._get_random_user_agent()}
         return self._fetch_with_retries(url, headers)
 
-    def _validate_url(self, url: str) -> None:
+    def _build_config(self, kwargs: dict) -> HTMLFetcherConfig:  # noqa
+        try:
+            return HTMLFetcherConfig(
+                user_agents=kwargs.get("user_agents", DEFAULT_CONFIG.user_agents),
+                request_timeout=kwargs.get(
+                    "request_timeout",
+                    DEFAULT_CONFIG.request_timeout,
+                ),
+                pool_connections=kwargs.get(
+                    "pool_connections",
+                    DEFAULT_CONFIG.pool_connections,
+                ),
+                pool_maxsize=kwargs.get("pool_maxsize", DEFAULT_CONFIG.pool_maxsize),
+                max_retries=kwargs.get("max_retries", DEFAULT_CONFIG.max_retries),
+                retry_delay=kwargs.get("retry_delay", DEFAULT_CONFIG.retry_delay),
+            )
+        except Exception as exc:
+            raise CrawlerConfigurationError(
+                issue=f"Invalid configuration parameters: {exc}",
+                component="fetcher_configuration",
+            ) from exc
+
+    def _log_initialization(self) -> None:
+        logger.debug(
+            "%s initialized with timeout=%ds, connections=%d, retries=%d",
+            self.__class__.__name__,
+            self._config.request_timeout,
+            self._config.pool_connections,
+            self._config.max_retries,
+        )
+
+    def _validate_url(self, url: str) -> None:  # noqa
         if not url or not url.strip():
-            raise InvalidSourceError("", "URL must be specified")
+            raise InvalidSourceError("", "URL cannot be empty")
 
         url = url.strip()
-        if not url.startswith((HTTP_SCHEMA, HTTPS_SCHEMA)):
-            raise InvalidSourceError(url, "URL must start with http:// or https://")
+        parsed = urlparse(url)
 
-        if any(char in url for char in [" ", "\n", "\r", "\t"]):
-            raise InvalidSourceError(url, "URL must not contain spaces or newlines")
+        if parsed.scheme not in ("http", "https"):
+            raise InvalidSourceError(url, "URL must use HTTP or HTTPS scheme")
 
-    def _fetch_with_retries(self, url: str, headers: dict) -> bytes:
-        last_exc = None
+        if not parsed.netloc:
+            raise InvalidSourceError(url, "URL must contain a valid domain")
 
-        for attempt in range(self._max_retries + 1):
+        # Check for invalid characters
+        invalid_chars = {" ", "\n", "\r", "\t"}
+        if any(char in url for char in invalid_chars):
+            raise InvalidSourceError(url, "URL contains invalid whitespace characters")
+
+    def _fetch_with_retries(self, url: str, headers: dict[str, str]) -> bytes:
+        last_exception = None
+        for attempt in range(self._config.max_retries + 1):
             try:
                 logger.debug(
-                    "Attempt %d/%d: initiating request to %s with headers=%s",
+                    "Attempt %d/%d for %s",
                     attempt + 1,
-                    self._max_retries + 1,
+                    self._config.max_retries + 1,
                     url,
-                    headers,
                 )
-
                 response = self._make_request(url, headers=headers)
-                self._log_response_success(url, response)
-
-                response.raise_for_status()
-
+                self._log_response_info(url, response)
                 logger.info(
-                    "Successfully fetched response from %s (status=%s, attempts=%s)",
+                    "Successfully fetched %s (status=%d, attempt=%d)",
                     url,
                     response.status_code,
-                    attempt,
+                    attempt + 1,
                 )
                 return response.content
 
             except (FetchTimeoutError, FetchConnectionError) as exc:
-                last_exc = exc
-                if attempt < self._max_retries:
-                    delay = min(self._retry_delay * (2**attempt), MAX_RETRY_DELAY)
+                last_exception = exc
+                if self._should_retry(attempt):
+                    delay = self._calculate_retry_delay(attempt)
                     logger.warning(
-                        "Attempt %d failed for %s: %s. Retrying in %d seconds...",
+                        "Attempt %d failed for %s: %s. Retrying in %.1fs",
                         attempt + 1,
                         url,
                         exc,
@@ -137,197 +166,191 @@ class HTMLFetcher(BaseFetcher):
                     )
                     time.sleep(delay)
                     continue
-                else:
-                    logger.error("All %d attempts failed for %s: %s", self._max_retries, url, exc)
-                    break
+                break
 
-            except (RateLimitError, FetchHTTPError, SourceNotFoundError) as exc:
-                logger.error("Non-retryable error for %s: %s", url, exc)
-                raise exc
+            except (RateLimitError, FetchHTTPError, SourceNotFoundError):
+                # Non-retryable errors
+                raise
 
-            except HTTPError as exc:
-                status_code = exc.response.status_code if exc.response else 0
+        # All retries exhausted
+        logger.error("All %d attempts failed for %s", self._config.max_retries + 1, url)
+        if last_exception:
+            raise last_exception
+        raise FetchError(
+            f"Failed to fetch {url} after {self._config.max_retries + 1} attempts"
+        )
 
-                if status_code == 404:
-                    logger.error("Page Not Found error for %s: %s", url, exc)
-                    raise SourceNotFoundError(url) from exc
+    def _should_retry(self, attempt: int) -> bool:
+        return attempt < self._config.max_retries
 
-                elif status_code == 403:
-                    logger.error("Forbidden error for %s: %s", url, exc)
-                    raise FetchHTTPError(url, status_code, "Forbidden") from exc
+    def _calculate_retry_delay(self, attempt: int) -> float:
+        delay = self._config.retry_delay * (2**attempt)
+        return min(delay, self._config.max_retry_delay)
 
-                elif status_code == 429:
-                    retry_after = exc.response.headers.get("Retry-After")
-                    retry_after_int = int(retry_after) if retry_after and retry_after.isdigit() else None
-                    logger.error("Rate limit error for %s: %s", url, exc)
-                    raise RateLimitError(url, retry_after_int) from exc
+    def _make_request(self, url: str, **kwargs) -> requests.Response:
+        if not self._session:
+            raise CrawlerConfigurationError(
+                issue="HTTP session not initialized",
+                component="session",
+            )
 
-                else:
-                    logger.error("HTTP error for %s: %s", url, exc)
-                    raise FetchHTTPError(url, status_code, exc.response.reason or "HTTP Error") from exc
+        try:
+            response = self._session.get(
+                url,
+                timeout=self._config.request_timeout,
+                **kwargs,
+            )
+            self._validate_response(url, response)
+            return response
 
-            except RequestException as exc:
-                logger.error("Network or request error during request to %s: %s", url, exc)
-                raise FetchError(f"Request error for URL {url}: {exc}") from exc
+        except Timeout as exc:
+            logger.error(
+                "Request timeout for %s after %ds",
+                url,
+                self._config.request_timeout,
+            )
+            raise FetchTimeoutError(url, self._config.request_timeout) from exc
 
-            except Exception as exc:
-                logger.error("Unexpected error during request to %s: %s", url, str(exc))
-                raise FetchError(f"Unexpected error for URL {url}: {exc}") from exc
+        except ConnectionError as exc:
+            logger.error("Connection error for %s: %s", url, exc)
+            raise FetchConnectionError(url, str(exc)) from exc
 
-        raise last_exc
+        except RequestException as exc:
+            logger.error("Request error for %s: %s", url, exc)
+            raise FetchError(f"Request failed for {url}: {exc}") from exc
 
-    def _log_response_success(self, url: str, response: requests.Response) -> None:
+    def _validate_response(self, url: str, response: requests.Response) -> None:
+        status_handlers = {
+            HTTPStatusCode.TOO_MANY_REQUESTS: self._handle_rate_limit,
+            HTTPStatusCode.NOT_FOUND: lambda u, r: SourceNotFoundError(u),
+            HTTPStatusCode.FORBIDDEN: lambda u, r: FetchHTTPError(
+                u, r.status_code, "Access forbidden"
+            ),
+            HTTPStatusCode.UNAUTHORIZED: lambda u, r: FetchHTTPError(
+                u, r.status_code, "Authentication required"
+            ),
+            HTTPStatusCode.SERVICE_UNAVAILABLE: lambda u, r: FetchHTTPError(
+                u, r.status_code, "Service unavailable"
+            ),
+        }
+
+        if response.status_code in status_handlers:
+            exception = status_handlers[response.status_code](url, response)
+            logger.warning("HTTP error %d for %s", response.status_code, url)
+            raise exception
+
+        elif response.status_code >= HTTPStatusCode.INTERNAL_SERVER_ERROR:
+            logger.warning("Server error %d for %s", response.status_code, url)
+            raise FetchHTTPError(
+                url, response.status_code, response.reason or "Server error"
+            )
+
+        elif response.status_code >= HTTPStatusCode.BAD_REQUEST:
+            logger.warning("Client error %d for %s", response.status_code, url)
+            raise FetchHTTPError(
+                url, response.status_code, response.reason or "Client error"
+            )
+
+    def _handle_rate_limit(
+        self,
+        url: str,
+        response: requests.Response,
+    ) -> RateLimitError:
+        retry_after_header = response.headers.get("Retry-After")
+        retry_after = self._parse_retry_after(retry_after_header)
+        logger.warning("Rate limit exceeded for %s, retry after: %s", url, retry_after)
+        return RateLimitError(url, retry_after)
+
+    def _parse_retry_after(self, retry_after: str | None) -> int | None:  # noqa
+        if not retry_after:
+            return None
+
+        try:
+            return int(retry_after)
+        except ValueError:
+            logger.debug("Invalid Retry-After header value: %s", retry_after)
+            return None
+
+    def _log_response_info(self, url: str, response: requests.Response) -> None:  # noqa
         try:
             content_size = utils.pretty_print_size(len(response.content))
+            status = response.status_code
 
-            if response.status_code < 300:
+            if status < 300:
                 logger.debug(
-                    "Successfully received response from %s (status=%d, size=%s)",
+                    "Success response from %s (status=%d, size=%s)",
                     url,
-                    response.status_code,
+                    status,
                     content_size,
                 )
-            elif response.status_code < 400:
-                logger.warning(
-                    "Received redirect response from %s (status=%d, location=%s, size=%s)",
+            elif status < 400:
+                location = response.headers.get("Location", "unknown")
+                logger.debug(
+                    "Redirect response from %s (status=%d, location=%s)",
                     url,
-                    response.status_code,
-                    response.headers.get("Location", "unknown"),
-                    content_size,
+                    status,
+                    location,
                 )
             else:
-                logger.warning(
-                    "Received error response from %s (status=%d, size=%s)",
+                logger.debug(
+                    "Error response from %s (status=%d, size=%s)",
                     url,
-                    response.status_code,
+                    status,
                     content_size,
                 )
+
         except Exception as exc:
-            logger.debug("Error logging response info for %s: %s", url, exc)
+            logger.debug("Failed to log response info for %s: %s", url, exc)
 
     def _setup_session(self) -> None:
         try:
             self._session = requests.Session()
 
             adapter = requests.adapters.HTTPAdapter(
-                pool_connections=self._pool_connections,
-                pool_maxsize=self._pool_maxsize,
-                max_retries=self._max_retries,
+                pool_connections=self._config.pool_connections,
+                pool_maxsize=self._config.pool_maxsize,
+                max_retries=0,  # We handle retries ourselves
             )
 
-            self._session.mount(HTTP_SCHEMA, adapter)
-            self._session.mount(HTTPS_SCHEMA, adapter)
+            self._session.mount("http://", adapter)
+            self._session.mount("https://", adapter)
 
+            # Set default headers
             self._session.headers.update(
                 {
-                    # 'User-Agent': 'BriefEx Crawler/1.0',
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                    "Accept-Language": "en-US,en;q=0.5",
+                    "Accept": (
+                        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                    ),
+                    # "Accept-Language": "en-US,en;q=0.5",
                     "Accept-Encoding": "gzip, deflate",
                     "Connection": "keep-alive",
                 }
             )
 
-            logger.debug(
-                "Session initialized with pool_connections=%d, pool_maxsize=%d",
-                self._pool_connections,
-                self._pool_maxsize,
-            )
+            logger.debug("HTTP session initialized successfully")
+
         except Exception as exc:
-            logger.error("Error setting up session: %s", exc)
             raise CrawlerConfigurationError(
-                issue=f"Error setting up session: {exc}",
-                component="html_fetcher_session",
+                issue=f"Failed to setup HTTP session: {exc}",
+                component="session_setup",
             ) from exc
 
     def _get_random_user_agent(self) -> str:
-        try:
-            user_agent = random.choice(self._user_agents)
-            logger.debug("Selected random User-Agent: %s", user_agent)
-            return user_agent
-        except Exception as exc:
-            logger.error("Error selecting random User-Agent: %s", exc)
+        if not self._config.user_agents:
             return "Mozilla/5.0 (compatible; BriefEx Crawler/1.0)"
 
-    def _make_request(self, url: str, **kwargs) -> requests.Response:
         try:
-            if not self._session:
-                raise CrawlerConfigurationError(
-                    issue="HTTP session is not initialized",
-                    component="html_fetcher_session",
-                )
-
-            response = self._session.get(url, timeout=self._request_timeout, **kwargs)
-            self._handle_response_errors(url, response)
-            return response
-
-        except Timeout as exc:
-            logger.error(
-                "Timeout error for URL %s after %d seconds: %s",
-                url,
-                self._request_timeout,
-                exc,
-            )
-            raise FetchTimeoutError(url, self._request_timeout) from exc
-
-        except ConnectionError as exc:
-            logger.error("Connection error for URL %s: %s", url, exc)
-            raise FetchConnectionError(url, str(exc)) from exc
-
-        except RequestException as exc:
-            logger.error("Request error for URL %s: %s", url, exc)
-            raise FetchError(f"Request error for URL {url}: {exc}") from exc
-
+            return random.choice(self._config.user_agents)
         except Exception as exc:
-            logger.error("Unexpected error making request to %s: %s", url, exc)
-            raise FetchError(f"Unexpected error making request to {url}: {exc}")
-
-    def _handle_response_errors(self, url: str, response: requests.Response) -> None:
-        try:
-            if response.status_code == 429:
-                retry_after = response.headers.get("Retry-After")
-                retry_after_int = int(retry_after) if retry_after and retry_after.isdigit() else None
-                logger.warning("Rate limit hit for %s, retry after: %s", url, retry_after)
-                raise RateLimitError(url, retry_after_int)
-
-            elif response.status_code == 404:
-                logger.warning("Page not found: %s", url)
-                raise SourceNotFoundError(url)
-
-            elif response.status_code == 403:
-                logger.warning("Access forbidden for %s", url)
-                raise FetchHTTPError(url, 403, "Access forbidden")
-
-            elif response.status_code == 401:
-                logger.warning("Authentication required for %s", url)
-                raise FetchHTTPError(url, 401, "Authentication required")
-
-            elif response.status_code == 503:
-                logger.warning("Service unavailable: %s", url)
-                raise FetchHTTPError(url, 503, "Service unavailable")
-
-            elif response.status_code >= 500:
-                logger.warning("Server error for %s (status=%d)", url, response.status_code)
-                raise FetchHTTPError(url, response.status_code, response.reason or "Server error")
-
-            elif response.status_code >= 400:
-                logger.warning("Client error for %s (status=%d)", url, response.status_code)
-                raise FetchHTTPError(url, response.status_code, response.reason or "Client error")
-        except (RateLimitError, FetchHTTPError, SourceNotFoundError):
-            raise
-        except Exception as exc:
-            logger.error("Error handling response errors for %s: %s", url, exc)
-            raise FetchError(f"Error handling response errors for {url}: {exc}") from exc
+            logger.warning("Failed to select random user agent: %s", exc)
+            return self._config.user_agents[0]
 
     def close(self) -> None:
-        try:
-            if self._session:
+        if self._session:
+            try:
                 self._session.close()
+                logger.debug("HTTP session closed successfully")
+            except Exception as exc:
+                logger.error("Error closing HTTP session: %s", exc)
+            finally:
                 self._session = None
-                logger.debug("HTTP session closed.")
-        except Exception as exc:
-            logger.error("Error closing HTTP session: %s", exc)
-            raise CrawlerConfigurationError(
-                issue=f"Error closing HTTP session: {exc}",
-                component="html_fetcher_session",
-            ) from exc
