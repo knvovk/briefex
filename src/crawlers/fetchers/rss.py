@@ -1,6 +1,7 @@
 import logging
 from typing import override
 
+from ..exceptions import FetchError
 from ..models import SourceType
 from .base import BaseFetcher
 from .factory import register
@@ -11,19 +12,22 @@ logger = logging.getLogger(__name__)
 @register(SourceType.RSS)
 class RSSFetcher(BaseFetcher):
 
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        logger.debug("RSSFetcher initialized (not implemented)")
+
     @override
     def fetch(self, url: str) -> bytes:
-        logger.warning("Fetch called on RSSFetcher for %s, which is not implemented", url)
-        error_msg = (
-            "RSS fetching logic needs to be implemented in RSSFetcher.fetch. "
-            "Create a subclass of RSSFetcher and override this method with proper implementation."
+        logger.info("RSS fetch requested for: %s", url)
+
+        error_message = (
+            f"RSS fetching is not yet implemented for URL: {url}. "
+            "This fetcher requires RSS parsing logic to be added."
         )
-        logger.error("Implementation required: %s", error_msg)
-        raise NotImplementedError(error_msg)
+
+        logger.error("RSS fetch failed: %s", error_message)
+        raise FetchError(error_message)
 
     @override
     def close(self) -> None:
-        logger.warning("Close called on RSSFetcher, which is not implemented")
-        error_msg = "RSSFetcher does not support closing connections. Do nothing."
-        logger.error("Implementation required: %s", error_msg)
-        raise NotImplementedError(error_msg)
+        logger.debug("RSSFetcher close called - no resources to clean up")
