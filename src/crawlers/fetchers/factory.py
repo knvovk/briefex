@@ -94,23 +94,13 @@ class FetcherFactory(BaseFetcherFactory):
         fetcher_class = self._get_fetcher_class(source_type)
         return self._instantiate_fetcher(fetcher_class, source_type)
 
-    def get_registered_fetcher_types(self) -> list[SourceType]:  # noqa
-        return _fetcher_registry.get_registered_types()
-
-    def is_supported(self, source_type: SourceType) -> bool:  # noqa
-        return _fetcher_registry.is_registered(source_type)
-
-    def get_fetcher_class(  # noqa
-        self,
-        source_type: SourceType,
-    ) -> type[BaseFetcher] | None:
-        return _fetcher_registry.get(source_type)
-
-    def _get_fetcher_class(self, source_type: SourceType) -> type[BaseFetcher]:
+    def _get_fetcher_class(self, source_type: SourceType) -> type[BaseFetcher]:  # noqa
         fetcher_class = _fetcher_registry.get(source_type)
 
         if fetcher_class is None:
-            registered_types = [str(t) for t in self.get_registered_fetcher_types()]
+            registered_types = [
+                str(t) for t in _fetcher_registry.get_registered_types()
+            ]
             raise CrawlerConfigurationError(
                 issue=(
                     f"No fetcher registered for source type '{source_type}'. "
@@ -133,6 +123,7 @@ class FetcherFactory(BaseFetcherFactory):
                 source_type,
             )
             return fetcher
+
         except Exception as exc:
             logger.error("Failed to instantiate %s: %s", fetcher_class.__name__, exc)
             raise CrawlerConfigurationError(
@@ -140,8 +131,8 @@ class FetcherFactory(BaseFetcherFactory):
                 component="fetcher_instantiation",
             ) from exc
 
-    def _log_initialization(self) -> None:
-        registered_types = self.get_registered_fetcher_types()
+    def _log_initialization(self) -> None:  # noqa
+        registered_types = _fetcher_registry.get_registered_types()
         logger.info(
             "FetcherFactory initialized with %d registered fetchers: %s",
             len(registered_types),
