@@ -80,20 +80,14 @@ class ParserFactory(BaseParserFactory):
     def create(self, src: Source) -> BaseParser:
         logger.debug("Creating parser for source: %s", src)
 
-        parser_class = self.get_parser_class(src.code_name)
+        parser_class = self._get_parser_class(src.code_name)
         return self._instantiate_parser(parser_class, src)
 
-    def get_registered_parser_types(self) -> list[str]:  # noqa
-        return _parser_registry.get_registered_types()
-
-    def is_supported(self, code_name: str) -> bool:  # noqa
-        return _parser_registry.is_registered(code_name)
-
-    def get_parser_class(self, code_name: str) -> type[BaseParser] | None:  # noqa
+    def _get_parser_class(self, code_name: str) -> type[BaseParser] | None:  # noqa
         parser_class = _parser_registry.get(code_name)
 
         if parser_class is None:
-            registered_types = [t for t in self.get_registered_parser_types()]
+            registered_types = [t for t in _parser_registry.get_registered_types()]
             raise CrawlerConfigurationError(
                 issue=(
                     f"No parser registered for code_name '{code_name}'. "
@@ -116,6 +110,7 @@ class ParserFactory(BaseParserFactory):
                 src.name,
             )
             return parser
+
         except Exception as exc:
             logger.error("Failed to instantiate %s: %s", parser_class.__name__, exc)
             raise CrawlerConfigurationError(
@@ -123,8 +118,8 @@ class ParserFactory(BaseParserFactory):
                 component="parser_instantiation",
             ) from exc
 
-    def _log_initialization(self) -> None:
-        registered_types = self.get_registered_parser_types()
+    def _log_initialization(self) -> None:  # noqa
+        registered_types = _parser_registry.get_registered_types()
         logger.info(
             "ParserFactory initialized with %d registered parsers: %s",
             len(registered_types),
