@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Callable
+from typing import Callable, override
 
 from ..exceptions import CrawlerConfigurationError
 from ..models import SourceType
@@ -87,6 +87,7 @@ class FetcherFactory(BaseFetcherFactory):
         super().__init__(*args, **kwargs)
         self._log_initialization()
 
+    @override
     def create(self, source_type: SourceType) -> BaseFetcher:
         logger.debug("Creating fetcher for source type: %s", source_type)
 
@@ -117,7 +118,6 @@ class FetcherFactory(BaseFetcherFactory):
                 ),
                 component="fetcher_selection",
             )
-
         return fetcher_class
 
     def _instantiate_fetcher(
