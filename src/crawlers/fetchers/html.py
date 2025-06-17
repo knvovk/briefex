@@ -135,12 +135,12 @@ class HTMLFetcher(BaseFetcher):
 
     def _fetch_with_retries(self, url: str, headers: dict[str, str]) -> bytes:
         last_exception = None
-        for attempt in range(self._config.max_retries + 1):
+        for attempt in range(1, self._config.max_retries + 1):
             try:
                 logger.debug(
                     "Attempt %d/%d for %s",
-                    attempt + 1,
-                    self._config.max_retries + 1,
+                    attempt,
+                    self._config.max_retries,
                     url,
                 )
                 response = self._make_request(url, headers=headers)
@@ -149,7 +149,7 @@ class HTMLFetcher(BaseFetcher):
                     "Successfully fetched %s (status=%d, attempt=%d)",
                     url,
                     response.status_code,
-                    attempt + 1,
+                    attempt,
                 )
                 return response.content
 
@@ -159,7 +159,7 @@ class HTMLFetcher(BaseFetcher):
                     delay = self._calculate_retry_delay(attempt)
                     logger.warning(
                         "Attempt %d failed for %s: %s. Retrying in %.1fs",
-                        attempt + 1,
+                        attempt,
                         url,
                         exc,
                         delay,
@@ -173,11 +173,11 @@ class HTMLFetcher(BaseFetcher):
                 raise
 
         # All retries exhausted
-        logger.error("All %d attempts failed for %s", self._config.max_retries + 1, url)
+        logger.error("All %d attempts failed for %s", self._config.max_retries, url)
         if last_exception:
             raise last_exception
         raise FetchError(
-            f"Failed to fetch {url} after {self._config.max_retries + 1} attempts"
+            f"Failed to fetch {url} after {self._config.max_retries} attempts"
         )
 
     def _should_retry(self, attempt: int) -> bool:
