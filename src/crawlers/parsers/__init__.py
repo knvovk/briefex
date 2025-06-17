@@ -1,4 +1,4 @@
-from .base import BaseParser, BaseParserFactory
-from .factory import ParserFactory
+from .base import BaseParser
+from .factory import BaseParserFactory, ParserFactory
 from .html import HTMLParser
 from .rss import RSSParser

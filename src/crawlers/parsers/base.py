@@ -16,9 +16,3 @@ class BaseParser(ABC):
 
     @abstractmethod
     def parse_many(self, data: bytes) -> list[PostDraft]: ...
-
-
-class BaseParserFactory(ABC):
-
-    @abstractmethod
-    def create(self, src: Source) -> BaseParser: ...
