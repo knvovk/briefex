@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from enum import Enum
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class SourceType(str, Enum):
@@ -12,23 +12,23 @@ class SourceType(str, Enum):
 
 
 class Source(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
     name: str
     code_name: str
     type: SourceType
     url: str
 
     def __repr__(self) -> str:
-        return f'"{self.name}"'
+        return f"<Source '{self.code_name}' ({self.type})>"
 
     def __str__(self) -> str:
-        return repr(self)
-
-    class Config:
-        frozen = True
-        extra = "forbid"
+        return self.name
 
 
 class Post(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
     id: str
     title: str
     content: str
@@ -36,22 +36,16 @@ class Post(BaseModel):
     pub_date: datetime
     source: Source
 
-    class Config:
-        frozen = True
-        extra = "forbid"
-
 
 class PostDraft(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     id: str | None = None
     title: str | None = None
     content: str | None = None
     url: str | None = None
     pub_date: datetime | None = None
     source: Source | None = None
-
-    class Config:
-        frozen = False
-        extra = "forbid"
 
     def merge(self, other: PostDraft) -> None:
         if not isinstance(other, PostDraft):
@@ -64,6 +58,14 @@ class PostDraft(BaseModel):
 
     @classmethod
     def to_post(cls, draft: PostDraft) -> Post:
+        required_fields = ["id", "title", "content", "url", "pub_date", "source"]
+        missing_fields = [
+            field for field in required_fields if getattr(draft, field) is None
+        ]
+
+        if missing_fields:
+            raise ValueError(f"Missing required fields in PostDraft: {missing_fields}")
+
         return Post(
             id=draft.id,
             title=draft.title,
