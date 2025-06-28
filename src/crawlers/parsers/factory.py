@@ -4,17 +4,19 @@ from typing import Callable, override
 
 from ..exceptions import CrawlerConfigurationError
 from ..models import Source
-from .base import BaseParser
+from .base import Parser
 
 logger = logging.getLogger(__name__)
+
+ParserClass = type[Parser]
 
 
 class ParserRegistry:
 
     def __init__(self) -> None:
-        self._registry: dict[str, type[BaseParser]] = {}
+        self._registry: dict[str, ParserClass] = {}
 
-    def register(self, code_name: str, parser_class: type[BaseParser]) -> None:
+    def register(self, code_name: str, parser_class: ParserClass) -> None:
         self._validate_parser_class(parser_class)
         self._registry[code_name] = parser_class
         logger.debug(
@@ -23,7 +25,7 @@ class ParserRegistry:
             code_name,
         )
 
-    def get(self, code_name: str) -> type[BaseParser] | None:
+    def get(self, code_name: str) -> ParserClass | None:
         return self._registry.get(code_name)
 
     def is_registered(self, code_name: str) -> bool:
@@ -32,10 +34,8 @@ class ParserRegistry:
     def get_registered_types(self) -> list[str]:
         return list(self._registry.keys())
 
-    def _validate_parser_class(self, parser_class: type[BaseParser]) -> None:  # noqa
-        if not isinstance(parser_class, type) or not issubclass(
-            parser_class, BaseParser
-        ):
+    def _validate_parser_class(self, parser_class: ParserClass) -> None:  # noqa
+        if not isinstance(parser_class, type) or not issubclass(parser_class, Parser):
             raise CrawlerConfigurationError(
                 issue=f"Class {parser_class.__name__} must be a subclass of BaseParser",
                 component="parser_registration",
@@ -45,45 +45,25 @@ class ParserRegistry:
 _parser_registry = ParserRegistry()
 
 
-def register(code_name: str) -> Callable[[type[BaseParser]], type[BaseParser]]:
-    def decorator(parser_class: type[BaseParser]) -> type[BaseParser]:
-        try:
-            _parser_registry.register(code_name, parser_class)
-            return parser_class
-        except Exception as exc:
-            logger.error(
-                "Failed to register parser %s for %s: %s",
-                parser_class.__name__,
-                code_name,
-                exc,
-            )
-            raise CrawlerConfigurationError(
-                issue=f"Registration failed for {parser_class.__name__}: {exc}",
-                component="parser_registration",
-            ) from exc
-
-    return decorator
-
-
-class BaseParserFactory(ABC):
+class ParserFactory(ABC):
 
     @abstractmethod
-    def create(self, src: Source) -> BaseParser: ...
+    def create(self, src: Source) -> Parser: ...
 
 
-class ParserFactory(BaseParserFactory):
+class DefaultParserFactory(ParserFactory):
 
     def __init__(self) -> None:
         self._log_initialization()
 
     @override
-    def create(self, src: Source) -> BaseParser:
+    def create(self, src: Source) -> Parser:
         logger.debug("Creating parser for source: %s", src)
 
         parser_class = self._get_parser_class(src.code_name)
         return self._instantiate_parser(parser_class, src)
 
-    def _get_parser_class(self, code_name: str) -> type[BaseParser] | None:  # noqa
+    def _get_parser_class(self, code_name: str) -> ParserClass | None:  # noqa
         parser_class = _parser_registry.get(code_name)
 
         if parser_class is None:
@@ -99,9 +79,9 @@ class ParserFactory(BaseParserFactory):
 
     def _instantiate_parser(  # noqa
         self,
-        parser_class: type[BaseParser],
+        parser_class: ParserClass,
         src: Source,
-    ) -> BaseParser:
+    ) -> Parser:
         try:
             parser = parser_class(src)
             logger.info(
@@ -125,3 +105,27 @@ class ParserFactory(BaseParserFactory):
             len(registered_types),
             ", ".join(registered_types),
         )
+
+
+def register(code_name: str) -> Callable[[ParserClass], ParserClass]:
+    def decorator(parser_class: ParserClass) -> ParserClass:
+        try:
+            _parser_registry.register(code_name, parser_class)
+            return parser_class
+        except Exception as exc:
+            logger.error(
+                "Failed to register parser %s for %s: %s",
+                parser_class.__name__,
+                code_name,
+                exc,
+            )
+            raise CrawlerConfigurationError(
+                issue=f"Registration failed for {parser_class.__name__}: {exc}",
+                component="parser_registration",
+            ) from exc
+
+    return decorator
+
+
+def create_default_parser_factory() -> ParserFactory:
+    return DefaultParserFactory()

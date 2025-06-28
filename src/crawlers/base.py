@@ -3,13 +3,13 @@ from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
 from .exceptions import CrawlerConfigurationError
-from .fetchers import BaseFetcher, BaseFetcherFactory
+from .fetchers import Fetcher, FetcherFactory
 from .models import Post, Source
-from .parsers import BaseParser, BaseParserFactory
+from .parsers import Parser, ParserFactory
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T", BaseFetcher, BaseParser)
+T = TypeVar("T", Fetcher, Parser)
 
 
 class ComponentManager(Generic[T]):
@@ -30,20 +30,20 @@ class ComponentManager(Generic[T]):
         return self._components[key]
 
 
-class BaseCrawler(ABC):
+class Crawler(ABC):
 
     def __init__(
         self,
-        fetcher_factory: BaseFetcherFactory,
-        parser_factory: BaseParserFactory,
+        fetcher_factory: FetcherFactory,
+        parser_factory: ParserFactory,
     ) -> None:
         self._fetcher_factory = fetcher_factory
         self._parser_factory = parser_factory
-        self._fetcher_manager = ComponentManager[BaseFetcher]("fetcher")
-        self._parser_manager = ComponentManager[BaseParser]("parser")
+        self._fetcher_manager = ComponentManager[Fetcher]("fetcher")
+        self._parser_manager = ComponentManager[Parser]("parser")
 
         logger.info(
-            "%s initialized with factories: fetcher=%s, parser=%s",
+            "%s initialized with factories: fetcher='%s', parser='%s'",
             self.__class__.__name__,
             fetcher_factory.__class__.__name__,
             parser_factory.__class__.__name__,
@@ -52,7 +52,7 @@ class BaseCrawler(ABC):
     @abstractmethod
     def crawl(self, src: Source) -> list[Post]: ...
 
-    def _get_fetcher(self, src: Source) -> BaseFetcher:
+    def _get_fetcher(self, src: Source) -> Fetcher:
         try:
             return self._fetcher_manager.get_or_create(
                 src.type.name,
@@ -65,7 +65,7 @@ class BaseCrawler(ABC):
                 component="fetcher_selection",
             ) from exc
 
-    def _get_parser(self, src: Source) -> BaseParser:
+    def _get_parser(self, src: Source) -> Parser:
         try:
             return self._parser_manager.get_or_create(
                 src.type.name,

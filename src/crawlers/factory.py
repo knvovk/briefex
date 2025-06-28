@@ -2,15 +2,15 @@ import logging
 from abc import ABC, abstractmethod
 from typing import override
 
-from .base import BaseCrawler
-from .crawler import Crawler
-from .fetchers import BaseFetcherFactory
-from .parsers import BaseParserFactory
+from .base import Crawler
+from .crawler import DefaultCrawler
+from .fetchers import FetcherFactory
+from .parsers import ParserFactory
 
 logger = logging.getLogger(__name__)
 
 
-class BaseCrawlerFactory(ABC):
+class CrawlerFactory(ABC):
 
     def __init__(self) -> None:
         logger.debug("CrawlerFactory initialized")
@@ -18,24 +18,29 @@ class BaseCrawlerFactory(ABC):
     @abstractmethod
     def create(
         self,
-        fetcher_factory: BaseFetcherFactory,
-        parser_factory: BaseParserFactory,
-    ) -> BaseCrawler: ...
+        fetcher_factory: FetcherFactory,
+        parser_factory: ParserFactory,
+    ) -> Crawler: ...
 
 
-class CrawlerFactory(BaseCrawlerFactory):
+class DefaultCrawlerFactory(CrawlerFactory):
 
     @property
     def default_crawler_cls(self) -> type:
-        return Crawler
+        return DefaultCrawler
 
     @override
     def create(
         self,
-        fetcher_factory: BaseFetcherFactory,
-        parser_factory: BaseParserFactory,
-    ) -> BaseCrawler:
+        fetcher_factory: FetcherFactory,
+        parser_factory: ParserFactory,
+    ) -> Crawler:
         crawler = self.default_crawler_cls(
-            fetcher_factory=fetcher_factory, parser_factory=parser_factory
+            fetcher_factory=fetcher_factory,
+            parser_factory=parser_factory,
         )
         return crawler
+
+
+def create_default_crawler_factory() -> CrawlerFactory:
+    return DefaultCrawlerFactory()

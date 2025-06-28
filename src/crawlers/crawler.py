@@ -4,7 +4,7 @@ from typing import Iterator, override
 
 import utils
 
-from .base import BaseCrawler
+from .base import Crawler
 from .exceptions import (
     CrawlerOperationError,
     FetchError,
@@ -13,7 +13,7 @@ from .exceptions import (
     create_fetch_error,
     create_parse_error,
 )
-from .fetchers import BaseFetcher
+from .fetchers import Fetcher
 from .models import Post, PostDraft, Source
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class CrawlContext:
         self.failed_drafts = 0
 
 
-class Crawler(BaseCrawler):
+class DefaultCrawler(Crawler):
 
     @override
     def crawl(self, src: Source) -> list[Post]:
@@ -61,7 +61,7 @@ class Crawler(BaseCrawler):
             ) from exc
 
     @contextmanager
-    def _get_managed_fetcher(self, src: Source) -> Iterator[BaseFetcher]:
+    def _get_managed_fetcher(self, src: Source) -> Iterator[Fetcher]:
         fetcher = None
         try:
             fetcher = self._get_fetcher(src)
@@ -72,7 +72,7 @@ class Crawler(BaseCrawler):
 
     def _process_drafts(
         self,
-        fetcher: BaseFetcher,
+        fetcher: Fetcher,
         src: Source,
         drafts: list[PostDraft],
         context: CrawlContext,
@@ -115,7 +115,7 @@ class Crawler(BaseCrawler):
         return posts
 
     def _process_single_draft(
-        self, fetcher: BaseFetcher, src: Source, draft: PostDraft
+        self, fetcher: Fetcher, src: Source, draft: PostDraft
     ) -> Post:
         # Ensure draft has source reference
         if draft.source is None:
@@ -128,7 +128,7 @@ class Crawler(BaseCrawler):
         return PostDraft.to_post(draft)
 
     def _fetch_posts_from_main_page(
-        self, fetcher: BaseFetcher, src: Source
+        self, fetcher: Fetcher, src: Source
     ) -> list[PostDraft]:
         try:
             response_data = fetcher.fetch(src.url)
@@ -148,7 +148,7 @@ class Crawler(BaseCrawler):
 
     def _fetch_post_details_from_individual_page(
         self,
-        fetcher: BaseFetcher,
+        fetcher: Fetcher,
         src: Source,
         draft: PostDraft,
     ) -> PostDraft:

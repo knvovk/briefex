@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 logger = logging.getLogger(__name__)
 
 
-class BaseFetcher(ABC):
+class Fetcher(ABC):
 
     def __init__(self, *args, **kwargs) -> None: ...
 

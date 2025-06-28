@@ -12,7 +12,7 @@ import utils
 
 from ..exceptions import ParseContentError, ParseError, ParseStructureError
 from ..models import PostDraft, Source
-from .base import BaseParser
+from .base import Parser
 from .factory import register
 
 logger = logging.getLogger(__name__)
@@ -95,7 +95,7 @@ def clean_text(text: str | None) -> str:
     return cleaned
 
 
-class HTMLParserConfig(BaseModel):
+class Config(BaseModel):
 
     model_config = ConfigDict(
         frozen=True,
@@ -111,7 +111,7 @@ class HTMLParserConfig(BaseModel):
     encoding: str = "utf-8"
 
 
-class HTMLParser(BaseParser, ABC):
+class HTMLParser(Parser, ABC):
 
     def __init__(self, src: Source) -> None:
         super().__init__(src)
@@ -205,7 +205,7 @@ class HTMLParser(BaseParser, ABC):
             )
 
     @abstractmethod
-    def _get_config(self) -> HTMLParserConfig: ...
+    def _get_config(self) -> Config: ...
 
     @abstractmethod
     def _find_post_cards(self, soup: BeautifulSoup) -> list[Tag]: ...
@@ -224,8 +224,8 @@ class HTMLParser(BaseParser, ABC):
 class RT(HTMLParser):
 
     @override
-    def _get_config(self) -> HTMLParserConfig:
-        return HTMLParserConfig(
+    def _get_config(self) -> Config:
+        return Config(
             article_tag="div",
             article_cls="article_article-page",
             card_tag="div",
@@ -297,7 +297,6 @@ class RT(HTMLParser):
         return clean_text(raw_text)
 
     def _extract_pub_date(self, article: Tag) -> datetime:
-        """Извлекает дату публикации."""
         try:
             time_tag = find_required_tag(article, "time", "date", self._domain)
             pub_date_str = get_required_attribute(time_tag, "datetime", self._domain)

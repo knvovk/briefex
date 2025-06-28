@@ -22,13 +22,13 @@ from ..exceptions import (
     SourceNotFoundError,
 )
 from ..models import SourceType
-from .base import BaseFetcher
+from .base import Fetcher
 from .factory import register
 
 logger = logging.getLogger(__name__)
 
 
-class HTMLFetcherConfig(BaseModel):
+class Config(BaseModel):
     user_agents: list[str]
     request_timeout: int
     pool_connections: int
@@ -38,7 +38,7 @@ class HTMLFetcherConfig(BaseModel):
     max_retry_delay: float = 60.0
 
 
-DEFAULT_CONFIG = HTMLFetcherConfig(
+DEFAULT_CONFIG = Config(
     user_agents=[
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -68,7 +68,7 @@ class HTTPStatusCode:
 
 
 @register(SourceType.HTML)
-class HTMLFetcher(BaseFetcher):
+class HTMLFetcher(Fetcher):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -84,9 +84,9 @@ class HTMLFetcher(BaseFetcher):
         headers = {"User-Agent": self._get_random_user_agent()}
         return self._fetch_with_retries(url, headers)
 
-    def _build_config(self, kwargs: dict) -> HTMLFetcherConfig:  # noqa
+    def _build_config(self, kwargs: dict) -> Config:  # noqa
         try:
-            return HTMLFetcherConfig(
+            return Config(
                 user_agents=kwargs.get("user_agents", DEFAULT_CONFIG.user_agents),
                 request_timeout=kwargs.get(
                     "request_timeout",

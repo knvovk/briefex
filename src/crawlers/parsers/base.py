@@ -6,7 +6,7 @@ from ..models import PostDraft, Source
 logger = logging.getLogger(__name__)
 
 
-class BaseParser(ABC):
+class Parser(ABC):
 
     def __init__(self, src: Source) -> None:
         self._src = src

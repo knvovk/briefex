@@ -3,14 +3,14 @@ from typing import override
 
 from ..exceptions import FetchError
 from ..models import SourceType
-from .base import BaseFetcher
+from .base import Fetcher
 from .factory import register
 
 logger = logging.getLogger(__name__)
 
 
 @register(SourceType.RSS)
-class RSSFetcher(BaseFetcher):
+class RSSFetcher(Fetcher):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)

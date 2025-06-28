@@ -3,12 +3,12 @@ from typing import override
 
 from ..exceptions import ParseError
 from ..models import PostDraft
-from .base import BaseParser
+from .base import Parser
 
 logger = logging.getLogger(__name__)
 
 
-class RSSParser(BaseParser):
+class RSSParser(Parser):
     _datetime_fmt: str = "%a, %d %b %Y %H:%M:%S %z"
 
     def __init__(self, *args, **kwargs) -> None:

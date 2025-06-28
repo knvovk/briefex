@@ -1,4 +1,4 @@
-from .base import BaseCrawler
+from .base import Crawler
 from .exceptions import (
     CrawlerConfigurationError,
     CrawlerError,
@@ -20,13 +20,7 @@ from .exceptions import (
     create_fetch_error,
     create_parse_error,
 )
-from .factory import BaseCrawlerFactory, CrawlerFactory
-from .fetchers import (
-    BaseFetcher,
-    BaseFetcherFactory,
-    FetcherFactory,
-    HTMLFetcher,
-    RSSFetcher,
-)
+from .factory import CrawlerFactory, create_default_crawler_factory
+from .fetchers import *
 from .models import Post, Source, SourceType
-from .parsers import BaseParser, BaseParserFactory, HTMLParser, ParserFactory, RSSParser
+from .parsers import *
