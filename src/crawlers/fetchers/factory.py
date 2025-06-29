@@ -16,26 +16,21 @@ class FetcherRegistry:
     def __init__(self) -> None:
         self._registry: dict[SourceType, FetcherT] = {}
 
-    def register(self, source_type: SourceType, fetcher_class: FetcherT) -> None:
+    def register(self, src_type: SourceType, fetcher_class: FetcherT) -> None:
         self._validate_fetcher_class(fetcher_class)
-        self._registry[source_type] = fetcher_class
-        logger.debug(
-            "%s registered %s for source type %s",
-            self.__class__.__name__,
-            fetcher_class.__name__,
-            source_type,
-        )
+        self._registry[src_type] = fetcher_class
+        logger.debug("%s registered for %s", fetcher_class.__name__, src_type)
 
-    def get(self, source_type: SourceType) -> FetcherT | None:
-        return self._registry.get(source_type)
+    def get(self, src_type: SourceType) -> FetcherT | None:
+        return self._registry.get(src_type)
 
-    def is_registered(self, source_type: SourceType) -> bool:
-        return source_type in self._registry
+    def is_registered(self, src_type: SourceType) -> bool:
+        return src_type in self._registry
 
     def get_registered_source_types(self) -> list[SourceType]:
         return list(self._registry.keys())
 
-    def _validate_fetcher_class(self, fetcher_class: FetcherT) -> None:  # noqa
+    def _validate_fetcher_class(self, fetcher_class: FetcherT) -> None:
         if not isinstance(fetcher_class, type) or not issubclass(
             fetcher_class, Fetcher
         ):
@@ -65,40 +60,33 @@ class DefaultFetcherFactory(FetcherFactory):
         self._log_initialization()
 
     @override
-    def create(self, source_type: SourceType) -> Fetcher:
-        logger.debug("Creating fetcher for source type: %s", source_type)
+    def create(self, src_type: SourceType) -> Fetcher:
+        logger.debug("Initializing fetcher for %s", src_type)
+        fetcher_class = self._get_fetcher_class(src_type)
+        return self._instantiate_fetcher(fetcher_class, src_type)
 
-        fetcher_class = self._get_fetcher_class(source_type)
-        return self._instantiate_fetcher(fetcher_class, source_type)
-
-    def _get_fetcher_class(self, source_type: SourceType) -> FetcherT:  # noqa
-        fetcher_class = _fetcher_registry.get(source_type)
+    def _get_fetcher_class(self, src_type: SourceType) -> FetcherT:
+        fetcher_class = _fetcher_registry.get(src_type)
 
         if fetcher_class is None:
-            registered_types = [
-                str(t) for t in _fetcher_registry.get_registered_source_types()
-            ]
+            source_types = _fetcher_registry.get_registered_source_types()
+            fetcher_list = [_fetcher_registry.get(t).__name__ for t in source_types]
             raise CrawlerConfigurationError(
-                issue=(
-                    f"No fetcher registered for source type '{source_type}'. "
-                    f"Available types: {', '.join(registered_types) or 'none'}"
-                ),
+                issue=f"No fetcher registered for {src_type}. "
+                f"Registered fetchers: {', '.join(fetcher_list or 'None')}",
                 component="fetcher_selection",
             )
+
         return fetcher_class
 
     def _instantiate_fetcher(
         self,
         fetcher_class: FetcherT,
-        source_type: SourceType,
+        src_type: SourceType,
     ) -> Fetcher:
         try:
             fetcher = fetcher_class(*self._args, **self._kwargs)
-            logger.info(
-                "Successfully created %s for source type %s",
-                fetcher_class.__name__,
-                source_type,
-            )
+            logger.info("%s initialized for %s", fetcher_class.__name__, src_type)
             return fetcher
 
         except Exception as exc:
@@ -108,25 +96,26 @@ class DefaultFetcherFactory(FetcherFactory):
                 component="fetcher_instantiation",
             ) from exc
 
-    def _log_initialization(self) -> None:  # noqa
+    def _log_initialization(self) -> None:
         source_types = _fetcher_registry.get_registered_source_types()
+        fetcher_list = [_fetcher_registry.get(t).__name__ for t in source_types]
         logger.info(
             "FetcherFactory initialized with %d registered fetchers: %s",
             len(source_types),
-            ", ".join(_fetcher_registry.get(t).__name__ for t in source_types),
+            ", ".join(fetcher_list),
         )
 
 
-def register(source_type: SourceType) -> Callable[[FetcherT], FetcherT]:
+def register(src_type: SourceType) -> Callable[[FetcherT], FetcherT]:
     def decorator(fetcher_class: FetcherT) -> FetcherT:
         try:
-            _fetcher_registry.register(source_type, fetcher_class)
+            _fetcher_registry.register(src_type, fetcher_class)
             return fetcher_class
         except Exception as exc:
             logger.error(
                 "Failed to register fetcher %s for %s: %s",
                 fetcher_class.__name__,
-                source_type,
+                src_type,
                 exc,
             )
             raise CrawlerConfigurationError(

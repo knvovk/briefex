@@ -20,10 +20,10 @@ class Source(BaseModel):
     url: str
 
     def __repr__(self) -> str:
-        return f"<Source '{self.code_name}' ({self.type})>"
+        return f"{self.name} (code_name={self.code_name}, type={self.type})"
 
     def __str__(self) -> str:
-        return self.name
+        return repr(self)
 
 
 class Post(BaseModel):

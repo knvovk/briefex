@@ -117,15 +117,10 @@ class HTMLParser(Parser, ABC):
         super().__init__(src)
         self._config = self._get_config()
         self._domain = utils.domain(src.url)
-        logger.info(
-            "%s parser initialized for %s",
-            self.__class__.__name__,
-            self._domain,
-        )
 
     @override
     def parse_one(self, data: bytes) -> PostDraft:
-        logger.info("Parsing single article for %s", self._domain)
+        logger.info("Parsing single article for %s", self._src)
 
         try:
             soup = self._prepare_soup(data)
@@ -151,7 +146,7 @@ class HTMLParser(Parser, ABC):
 
     @override
     def parse_many(self, data: bytes) -> list[PostDraft]:
-        logger.info("Parsing multiple articles for %s", self._domain)
+        logger.info("Parsing multiple articles for %s", self._src)
 
         try:
             soup = self._prepare_soup(data)
@@ -292,7 +287,7 @@ class RT(HTMLParser):
         if paragraphs:
             raw_text = "\n".join(p.get_text(strip=True) for p in paragraphs)
         else:
-            raw_text = article_div.get_text(separator=" ", strip=True)  # noqa
+            raw_text = article_div.get_text(separator=" ", strip=True)
 
         return clean_text(raw_text)
 

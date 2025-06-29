@@ -19,12 +19,7 @@ class ParserRegistry:
     def register(self, code_name: str, parser_class: ParserT) -> None:
         self._validate_parser_class(parser_class)
         self._registry[code_name] = parser_class
-        logger.debug(
-            "%s registered %s for source with code_name '%s'",
-            self.__class__.__name__,
-            parser_class.__name__,
-            code_name,
-        )
+        logger.debug("%s registered for %s", parser_class.__name__, code_name)
 
     def get(self, code_name: str) -> ParserT | None:
         return self._registry.get(code_name)
@@ -35,7 +30,7 @@ class ParserRegistry:
     def get_registered_code_names(self) -> list[str]:
         return list(self._registry.keys())
 
-    def _validate_parser_class(self, parser_class: ParserT) -> None:  # noqa
+    def _validate_parser_class(self, parser_class: ParserT) -> None:
         if not isinstance(parser_class, type) or not issubclass(parser_class, Parser):
             raise CrawlerConfigurationError(
                 issue=f"Class {parser_class.__name__} must be a subclass of Parser",
@@ -55,41 +50,37 @@ class ParserFactory(ABC):
 class DefaultParserFactory(ParserFactory):
 
     def __init__(self) -> None:
+        super().__init__()
         self._log_initialization()
 
     @override
     def create(self, src: Source) -> Parser:
-        logger.debug("Creating parser for source: %s", src)
-
+        logger.debug("Initializing parser for %s", src)
         parser_class = self._get_parser_class(src.code_name)
         return self._instantiate_parser(parser_class, src)
 
-    def _get_parser_class(self, code_name: str) -> ParserT | None:  # noqa
+    def _get_parser_class(self, code_name: str) -> ParserT | None:
         parser_class = _parser_registry.get(code_name)
 
         if parser_class is None:
-            registered_types = [t for t in _parser_registry.get_registered_code_names()]
+            code_names = _parser_registry.get_registered_code_names()
+            parser_list = [_parser_registry.get(c).__name__ for c in code_names]
             raise CrawlerConfigurationError(
-                issue=(
-                    f"No parser registered for code_name '{code_name}'. "
-                    f"Available types: {', '.join(registered_types) or 'none'}"
-                ),
+                issue=f"No parser registered for source with code_name {code_name}. "
+                f"Registered parsers: {', '.join(parser_list or 'None')}",
                 component="parser_selection",
             )
+
         return parser_class
 
-    def _instantiate_parser(  # noqa
+    def _instantiate_parser(
         self,
         parser_class: ParserT,
         src: Source,
     ) -> Parser:
         try:
             parser = parser_class(src)
-            logger.info(
-                "Successfully created %s for source %s",
-                parser_class.__name__,
-                src.name,
-            )
+            logger.info("%s initialized for %s", parser_class.__name__, src)
             return parser
 
         except Exception as exc:
@@ -99,12 +90,13 @@ class DefaultParserFactory(ParserFactory):
                 component="parser_instantiation",
             ) from exc
 
-    def _log_initialization(self) -> None:  # noqa
+    def _log_initialization(self) -> None:
         code_names = _parser_registry.get_registered_code_names()
+        parser_list = [_parser_registry.get(p).__name__ for p in code_names]
         logger.info(
             "ParserFactory initialized with %d registered parsers: %s",
             len(code_names),
-            ", ".join([_parser_registry.get(p).__name__ for p in code_names]),
+            ", ".join(parser_list),
         )
 
 

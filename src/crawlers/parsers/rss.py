@@ -17,10 +17,10 @@ class RSSParser(Parser):
 
     @override
     def parse_one(self, data: bytes) -> PostDraft:
-        logger.info("Parsing single article for %s", self._src.name)
+        logger.info("Parsing single article for %s", self._src)
 
         error_message = (
-            f"RSS parsing is not yet implemented for source {self._src.name}. "
+            f"RSS parsing is not yet implemented for source {self._src}. "
             "This parser requires RSS parsing logic to be added."
         )
 
@@ -29,10 +29,10 @@ class RSSParser(Parser):
 
     @override
     def parse_many(self, data: bytes) -> list[PostDraft]:
-        logger.info("Parsing multiple articles for %s", self._src.name)
+        logger.info("Parsing multiple articles for %s", self._src)
 
         error_message = (
-            f"RSS parsing is not yet implemented for source {self._src.name}. "
+            f"RSS parsing is not yet implemented for source {self._src}. "
             "This parser requires RSS parsing logic to be added."
         )
 

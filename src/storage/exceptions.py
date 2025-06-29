@@ -35,7 +35,7 @@ class DatabaseError(Exception):
         return repr(self)
 
 
-class ConnectionError(DatabaseError):  # noqa
+class ConnectionError(DatabaseError):
     default_message = "Error connecting to database"
 
 

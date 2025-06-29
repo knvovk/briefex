@@ -35,7 +35,7 @@ class Config(BaseModel):
     pool_maxsize: int
     max_retries: int
     retry_delay: float
-    max_retry_delay: float = 60.0
+    max_retry_delay: float
 
 
 DEFAULT_CONFIG = Config(
@@ -52,6 +52,7 @@ DEFAULT_CONFIG = Config(
     pool_maxsize=100,
     max_retries=3,
     retry_delay=1.0,
+    max_retry_delay=60,
 )
 
 
@@ -75,7 +76,6 @@ class HTMLFetcher(Fetcher):
         self._session: requests.Session | None = None
         self._config = self._build_config(kwargs)
         self._setup_session()
-        self._log_initialization()
 
     @override
     def fetch(self, url: str) -> bytes:
@@ -84,7 +84,7 @@ class HTMLFetcher(Fetcher):
         headers = {"User-Agent": self._get_random_user_agent()}
         return self._fetch_with_retries(url, headers)
 
-    def _build_config(self, kwargs: dict) -> Config:  # noqa
+    def _build_config(self, kwargs: dict) -> Config:
         try:
             return Config(
                 user_agents=kwargs.get("user_agents", DEFAULT_CONFIG.user_agents),
@@ -106,16 +106,7 @@ class HTMLFetcher(Fetcher):
                 component="fetcher_configuration",
             ) from exc
 
-    def _log_initialization(self) -> None:
-        logger.debug(
-            "%s initialized with timeout=%ds, connections=%d, retries=%d",
-            self.__class__.__name__,
-            self._config.request_timeout,
-            self._config.pool_connections,
-            self._config.max_retries,
-        )
-
-    def _validate_url(self, url: str) -> None:  # noqa
+    def _validate_url(self, url: str) -> None:
         if not url or not url.strip():
             raise InvalidSourceError("", "URL cannot be empty")
 
@@ -137,12 +128,13 @@ class HTMLFetcher(Fetcher):
         last_exception = None
         for attempt in range(1, self._config.max_retries + 1):
             try:
-                logger.debug(
-                    "Attempt %d/%d for %s",
-                    attempt,
-                    self._config.max_retries,
-                    url,
-                )
+                if attempt > 1:
+                    logger.debug(
+                        "Attempt %d/%d for %s",
+                        attempt,
+                        self._config.max_retries,
+                        url,
+                    )
                 response = self._make_request(url, headers=headers)
                 self._log_response_info(url, response)
                 logger.info(
@@ -224,13 +216,19 @@ class HTMLFetcher(Fetcher):
             HTTPStatusCode.TOO_MANY_REQUESTS: self._handle_rate_limit,
             HTTPStatusCode.NOT_FOUND: lambda u, r: SourceNotFoundError(u),
             HTTPStatusCode.FORBIDDEN: lambda u, r: FetchHTTPError(
-                u, r.status_code, "Access forbidden"
+                u,
+                r.status_code,
+                "Access forbidden",
             ),
             HTTPStatusCode.UNAUTHORIZED: lambda u, r: FetchHTTPError(
-                u, r.status_code, "Authentication required"
+                u,
+                r.status_code,
+                "Authentication required",
             ),
             HTTPStatusCode.SERVICE_UNAVAILABLE: lambda u, r: FetchHTTPError(
-                u, r.status_code, "Service unavailable"
+                u,
+                r.status_code,
+                "Service unavailable",
             ),
         }
 
@@ -261,7 +259,7 @@ class HTMLFetcher(Fetcher):
         logger.warning("Rate limit exceeded for %s, retry after: %s", url, retry_after)
         return RateLimitError(url, retry_after)
 
-    def _parse_retry_after(self, retry_after: str | None) -> int | None:  # noqa
+    def _parse_retry_after(self, retry_after: str | None) -> int | None:
         if not retry_after:
             return None
 
@@ -271,14 +269,14 @@ class HTMLFetcher(Fetcher):
             logger.debug("Invalid Retry-After header value: %s", retry_after)
             return None
 
-    def _log_response_info(self, url: str, response: requests.Response) -> None:  # noqa
+    def _log_response_info(self, url: str, response: requests.Response) -> None:
         try:
             content_size = utils.pretty_print_size(len(response.content))
             status = response.status_code
 
             if status < 300:
                 logger.debug(
-                    "Success response from %s (status=%d, size=%s)",
+                    "Response received from %s (status=%d, size=%s)",
                     url,
                     status,
                     content_size,
@@ -286,14 +284,14 @@ class HTMLFetcher(Fetcher):
             elif status < 400:
                 location = response.headers.get("Location", "unknown")
                 logger.debug(
-                    "Redirect response from %s (status=%d, location=%s)",
+                    "Redirect response received from %s (status=%d, location=%s)",
                     url,
                     status,
                     location,
                 )
             else:
                 logger.debug(
-                    "Error response from %s (status=%d, size=%s)",
+                    "Error response received from %s (status=%d, size=%s)",
                     url,
                     status,
                     content_size,
@@ -321,13 +319,10 @@ class HTMLFetcher(Fetcher):
                     "Accept": (
                         "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
                     ),
-                    # "Accept-Language": "en-US,en;q=0.5",
                     "Accept-Encoding": "gzip, deflate",
                     "Connection": "keep-alive",
                 }
             )
-
-            logger.debug("HTTP session initialized successfully")
 
         except Exception as exc:
             raise CrawlerConfigurationError(
@@ -349,7 +344,7 @@ class HTMLFetcher(Fetcher):
         if self._session:
             try:
                 self._session.close()
-                logger.debug("HTTP session closed successfully")
+                logger.debug("HTTP session closed")
             except Exception as exc:
                 logger.error("Error closing HTTP session: %s", exc)
             finally:

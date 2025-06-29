@@ -2,8 +2,6 @@ import logging
 from contextlib import contextmanager
 from typing import Iterator, override
 
-import utils
-
 from .base import Crawler
 from .exceptions import (
     CrawlerOperationError,
@@ -33,14 +31,8 @@ class DefaultCrawler(Crawler):
 
     @override
     def crawl(self, src: Source) -> list[Post]:
+        logger.info("Starting crawl for source %s", src)
         context = CrawlContext(src)
-
-        logger.info(
-            "Starting crawl for source '%s' (domain=%s, type=%s)",
-            src.name,
-            utils.domain(src.url),
-            src.type.name,
-        )
 
         try:
             with self._get_managed_fetcher(src) as fetcher:
@@ -53,7 +45,7 @@ class DefaultCrawler(Crawler):
                 return posts
 
         except Exception as exc:
-            logger.error("Error crawling source %s: %s", src.name, exc, exc_info=True)
+            logger.error("Error crawling source %s: %s", src, exc, exc_info=True)
             raise CrawlerOperationError(
                 operation="crawl",
                 source_name=src.name,
@@ -168,29 +160,26 @@ class DefaultCrawler(Crawler):
                 error_details=str(exc),
             ) from exc
 
-    def _parse_exception(  # noqa
+    def _parse_exception(
         self,
         exc: Exception,
         url: str,
-        source_type: str,
+        src_type: str,
     ) -> Exception | None:
         exc_type_name = type(exc).__name__.lower()
 
         if "fetch" in exc_type_name:
             return create_fetch_error(url, exc)
         elif "parse" in exc_type_name:
-            return create_parse_error(url, source_type, exc)
+            return create_parse_error(url, src_type, exc)
 
         return None
 
-    def _log_crawl_summary(self, context: CrawlContext) -> None:  # noqa
+    def _log_crawl_summary(self, ctx: CrawlContext) -> None:
         logger.info(
-            "Finished crawl for source '%s' (domain=%s, type=%s) - "
-            "Total: %d, Successful: %d, Failed: %d",
-            context.source.name,
-            utils.domain(context.source.url),
-            context.source.type.name,
-            context.total_drafts,
-            context.successful_posts,
-            context.failed_drafts,
+            "Finished crawl for source %s [total=%d, successful=%d, failed=%d]",
+            ctx.source,
+            ctx.total_drafts,
+            ctx.successful_posts,
+            ctx.failed_drafts,
         )

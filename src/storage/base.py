@@ -50,7 +50,7 @@ class Storage[T]:
         self._execute(lambda: self._delete_func(pk, session))
         return None
 
-    def _execute(self, operation: Callable[[], R]) -> R:  # noqa
+    def _execute(self, operation: Callable[[], R]) -> R:
         try:
             return operation()
 
@@ -62,60 +62,56 @@ class Storage[T]:
             logger.error("Unexpected error: %s", exc, exc_info=True)
             raise map_sqlalchemy_error(exc) from exc
 
-    def _add_func(self, obj: T, session: Session) -> T:  # noqa
-        logger.debug("Adding '%s' object to session", self._model.__name__)
+    def _add_func(self, obj: T, session: Session) -> T:
+        logger.debug("Adding %s object to session", self._model.__name__)
         session.add(obj)
-        logger.debug("'%s' object successfully added to session", self._model.__name__)
+        logger.info("%s object added to session", self._model.__name__)
         return obj
 
-    def _add_many_func(self, objs: list[T], session: Session) -> list[T]:  # noqa
+    def _add_many_func(self, objs: list[T], session: Session) -> list[T]:
         logger.debug(
-            "Adding %d '%s' objects to session: %s",
+            "Adding %d %s objects to session: %s",
             len(objs),
             self._model.__name__,
         )
         session.add_all(objs)
-        logger.debug(
-            "%d '%s' objects successfully added to session",
+        logger.info(
+            "%d %s objects added to session",
             len(objs),
             self._model.__name__,
         )
         return objs
 
     def _get_func(self, pk: Any, session: Session) -> T:
-        logger.debug("Retrieving '%s' object with id=%s", self._model.__name__, pk)
+        logger.debug("Retrieving %s object with id=%s", self._model.__name__, pk)
         instance = session.get(self._model, pk)
         if not instance:
             raise ModelNotFoundError(name=self._model.__name__, pk=str(pk))
-        logger.debug("'%s' object successfully retrieved", self._model.__name__)
+        logger.info("%s object with id=%s retrieved", self._model.__name__, pk)
         return instance
 
     def _get_many_func(self, filters: dict[str, Any], session: Session) -> list[T]:
         logger.debug(
-            "Retrieving '%s' objects with filters: %s",
+            "Retrieving %s objects with filters=%s",
             self._model.__name__,
             filters,
         )
         query = session.query(self._model).filter_by(**filters)
         objs: list[T] = list(query.all())
-        logger.debug(
-            "%d '%s' objects successfully retrieved",
-            len(objs),
-            self._model.__name__,
-        )
+        logger.info("%d %s objects retrieved", len(objs), self._model.__name__)
         return objs
 
     def _update_func(self, pk: Any, data: dict[str, Any], session: Session) -> T:
-        logger.debug("Updating '%s' object with id=%s", self._model.__name__, pk)
+        logger.debug("Updating %s object with id=%s", self._model.__name__, pk)
         instance = self._get_func(pk, session)
         for k, v in data.items():
             setattr(instance, k, v)
-        logger.debug("'%s' object successfully updated", self._model.__name__)
+        logger.info("%s object with id=%s updated", self._model.__name__, pk)
         return instance
 
     def _delete_func(self, pk: Any, session: Session) -> None:
-        logger.debug("Deleting '%s' object with id=%s", self._model.__name__, pk)
+        logger.debug("Deleting %s object with id=%s", self._model.__name__, pk)
         instance = self._get_func(pk, session)
         session.delete(instance)
-        logger.debug("'%s' object successfully deleted", self._model.__name__)
+        logger.info("%s object with id=%s deleted", self._model.__name__, pk)
         return None

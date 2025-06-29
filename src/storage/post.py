@@ -23,7 +23,8 @@ class PostStorage(Storage[Post]):
         return self._execute(lambda: self._get_recent_func(days, session))
 
     def _get_recent_func(self, days: int, session: Session) -> list[Post]:
-        logger.debug("Retrieving recent posts")
+        logger.debug("Retrieving recent Post objects")
+
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         query = (
             select(self._model)
@@ -31,5 +32,6 @@ class PostStorage(Storage[Post]):
             .order_by(self._model.published_at.desc())
         )
         objs = list(session.scalars(query).all())
-        logger.debug("Retrieved %d recent posts", len(objs))
+
+        logger.debug("%d recent Post objects retrieved", len(objs))
         return objs
