@@ -19,11 +19,6 @@ class Storage[T]:
 
     def __init__(self, model: type[T]) -> None:
         self._model: type[T] = model
-        logger.debug(
-            "%s initialized for model '%s'",
-            self.__class__.__name__,
-            self._model.__name__,
-        )
 
     @ensure_session
     def add(self, obj: T, *, session: Session) -> T:

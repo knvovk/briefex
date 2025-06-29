@@ -20,7 +20,8 @@ class FetcherRegistry:
         self._validate_fetcher_class(fetcher_class)
         self._registry[source_type] = fetcher_class
         logger.debug(
-            "Registered %s for source type %s",
+            "%s registered %s for source type %s",
+            self.__class__.__name__,
             fetcher_class.__name__,
             source_type,
         )
@@ -31,7 +32,7 @@ class FetcherRegistry:
     def is_registered(self, source_type: SourceType) -> bool:
         return source_type in self._registry
 
-    def get_registered_types(self) -> list[SourceType]:
+    def get_registered_source_types(self) -> list[SourceType]:
         return list(self._registry.keys())
 
     def _validate_fetcher_class(self, fetcher_class: FetcherT) -> None:  # noqa
@@ -75,7 +76,7 @@ class DefaultFetcherFactory(FetcherFactory):
 
         if fetcher_class is None:
             registered_types = [
-                str(t) for t in _fetcher_registry.get_registered_types()
+                str(t) for t in _fetcher_registry.get_registered_source_types()
             ]
             raise CrawlerConfigurationError(
                 issue=(
@@ -108,11 +109,11 @@ class DefaultFetcherFactory(FetcherFactory):
             ) from exc
 
     def _log_initialization(self) -> None:  # noqa
-        registered_types = _fetcher_registry.get_registered_types()
+        source_types = _fetcher_registry.get_registered_source_types()
         logger.info(
             "FetcherFactory initialized with %d registered fetchers: %s",
-            len(registered_types),
-            ", ".join(str(t) for t in registered_types),
+            len(source_types),
+            ", ".join(_fetcher_registry.get(t).__name__ for t in source_types),
         )
 
 

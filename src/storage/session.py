@@ -20,11 +20,11 @@ db_cfg = config.load().database
 
 @lru_cache(maxsize=1)
 def create_storage_engine(*, url: str, echo: bool) -> Engine:
-    logger.debug("Creating database engine (url=%s, echo=%s)", url, echo)
+    logger.debug("Initializing database engine (url=%s, echo=%s)", url, echo)
 
     try:
         e = create_engine(url, echo=echo)
-        logger.info("Database engine successfully initialized")
+        logger.info("Database engine initialized")
         return e
 
     except Exception as exc:
@@ -48,7 +48,7 @@ def create_storage_session_factory(
     expire_on_commit: bool,
 ) -> scoped_session:
     logger.debug(
-        "Creating session factory (autoflush=%s, autocommit=%s, expire_on_commit=%s)",
+        "Initializing session factory (autoflush=%s, autocommit=%s, expire_on_commit=%s)",
         autoflush,
         autocommit,
         expire_on_commit,
@@ -63,7 +63,7 @@ def create_storage_session_factory(
                 expire_on_commit=expire_on_commit,
             )
         )
-        logger.info("Session factory successfully created")
+        logger.info("Session factory initialized")
         return session_factory
 
     except Exception as exc:

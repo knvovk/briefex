@@ -43,7 +43,7 @@ class Crawler(ABC):
         self._parser_manager = ComponentManager[Parser]("parser")
 
         logger.info(
-            "%s initialized with factories: fetcher='%s', parser='%s'",
+            "%s initialized with factories: %s, %s",
             self.__class__.__name__,
             fetcher_factory.__class__.__name__,
             parser_factory.__class__.__name__,

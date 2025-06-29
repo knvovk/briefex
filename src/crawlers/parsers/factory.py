@@ -20,7 +20,8 @@ class ParserRegistry:
         self._validate_parser_class(parser_class)
         self._registry[code_name] = parser_class
         logger.debug(
-            "Registered %s for parser code_name %s",
+            "%s registered %s for source with code_name '%s'",
+            self.__class__.__name__,
             parser_class.__name__,
             code_name,
         )
@@ -31,7 +32,7 @@ class ParserRegistry:
     def is_registered(self, code_name: str) -> bool:
         return code_name in self._registry
 
-    def get_registered_types(self) -> list[str]:
+    def get_registered_code_names(self) -> list[str]:
         return list(self._registry.keys())
 
     def _validate_parser_class(self, parser_class: ParserT) -> None:  # noqa
@@ -67,7 +68,7 @@ class DefaultParserFactory(ParserFactory):
         parser_class = _parser_registry.get(code_name)
 
         if parser_class is None:
-            registered_types = [t for t in _parser_registry.get_registered_types()]
+            registered_types = [t for t in _parser_registry.get_registered_code_names()]
             raise CrawlerConfigurationError(
                 issue=(
                     f"No parser registered for code_name '{code_name}'. "
@@ -99,11 +100,11 @@ class DefaultParserFactory(ParserFactory):
             ) from exc
 
     def _log_initialization(self) -> None:  # noqa
-        registered_types = _parser_registry.get_registered_types()
+        code_names = _parser_registry.get_registered_code_names()
         logger.info(
             "ParserFactory initialized with %d registered parsers: %s",
-            len(registered_types),
-            ", ".join(registered_types),
+            len(code_names),
+            ", ".join([_parser_registry.get(p).__name__ for p in code_names]),
         )
 
 

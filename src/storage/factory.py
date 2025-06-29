@@ -21,7 +21,8 @@ class StorageRegistry:
         self._validate_storage_class(storage_class)
         self._registry[model] = storage_class
         logger.debug(
-            "Registered '%s' for model '%s'",
+            "%s registered %s for model %s",
+            self.__class__.__name__,
             storage_class.__name__,
             model.__name__,
         )
@@ -32,7 +33,7 @@ class StorageRegistry:
     def is_registered(self, model: ModelT) -> bool:
         return model in self._registry
 
-    def get_registered_types(self) -> list[ModelT]:
+    def get_registered_models(self) -> list[ModelT]:
         return list(self._registry.keys())
 
     def _validate_storage_class(self, storage_class: StorageT) -> None:  # noqa
@@ -62,8 +63,7 @@ class DefaultStorageFactory(StorageFactory):
 
     @override
     def create(self, model: ModelT) -> Storage:
-        logger.debug("Creating storage for model: %s", model.__name__)
-
+        logger.debug("Initializing storage for model: '%s'", model.__name__)
         storage_class = self._get_storage_class(model)
         return self._instantiate_storage(storage_class, model)
 
@@ -71,14 +71,10 @@ class DefaultStorageFactory(StorageFactory):
         storage_class = _storage_registry.get(model)
 
         if storage_class is None:
-            registered_types = [
-                str(t) for t in _storage_registry.get_registered_types()
-            ]
+            models = _storage_registry.get_registered_models()
             raise StorageConfigurationError(
-                issue=(
-                    f"No storage registered for model '{model.__name__}'. "
-                    f"Available types: {', '.join(registered_types) or 'none'}"
-                ),
+                issue=f"No storage registered for model '{model.__name__}'. "
+                f"Registered storages: {', '.join(_storage_registry.get(m).__name__ for m in models)}",
                 component="storage_selection",
             )
         return storage_class
@@ -91,7 +87,7 @@ class DefaultStorageFactory(StorageFactory):
         try:
             storage = storage_class()  # noqa
             logger.info(
-                "Successfully created %s for model %s",
+                "%s initialized for model '%s'",
                 storage_class.__name__,
                 model.__name__,
             )
@@ -105,11 +101,11 @@ class DefaultStorageFactory(StorageFactory):
             ) from exc
 
     def _log_initialization(self) -> None:  # noqa
-        registered_types = _storage_registry.get_registered_types()
+        models = _storage_registry.get_registered_models()
         logger.info(
             "StorageFactory initialized with %d registered storages: %s",
-            len(registered_types),
-            ", ".join(str(t) for t in registered_types),
+            len(models),
+            ", ".join(_storage_registry.get(m).__name__ for m in models),
         )
 
 

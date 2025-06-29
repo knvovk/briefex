@@ -27,14 +27,12 @@ class DatabaseError(Exception):
         self.details: dict[str, Any] = details
 
     def __repr__(self) -> str:
-        return (
-            f"{self.message} | Details: {self.details}"
-            if self.details
-            else self.message
-        )
+        if self.details:
+            return f"{self.message} | Details: {self.details}"
+        return self.message
 
     def __str__(self) -> str:
-        return self.message
+        return repr(self)
 
 
 class ConnectionError(DatabaseError):  # noqa

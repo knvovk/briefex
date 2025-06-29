@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class CrawlerFactory(ABC):
 
     def __init__(self) -> None:
-        logger.debug("CrawlerFactory initialized")
+        logger.info("CrawlerFactory initialized")
 
     @abstractmethod
     def create(
