@@ -8,15 +8,15 @@ from .base import Parser
 
 logger = logging.getLogger(__name__)
 
-ParserClass = type[Parser]
+ParserT = type[Parser]
 
 
 class ParserRegistry:
 
     def __init__(self) -> None:
-        self._registry: dict[str, ParserClass] = {}
+        self._registry: dict[str, ParserT] = {}
 
-    def register(self, code_name: str, parser_class: ParserClass) -> None:
+    def register(self, code_name: str, parser_class: ParserT) -> None:
         self._validate_parser_class(parser_class)
         self._registry[code_name] = parser_class
         logger.debug(
@@ -25,7 +25,7 @@ class ParserRegistry:
             code_name,
         )
 
-    def get(self, code_name: str) -> ParserClass | None:
+    def get(self, code_name: str) -> ParserT | None:
         return self._registry.get(code_name)
 
     def is_registered(self, code_name: str) -> bool:
@@ -34,10 +34,10 @@ class ParserRegistry:
     def get_registered_types(self) -> list[str]:
         return list(self._registry.keys())
 
-    def _validate_parser_class(self, parser_class: ParserClass) -> None:  # noqa
+    def _validate_parser_class(self, parser_class: ParserT) -> None:  # noqa
         if not isinstance(parser_class, type) or not issubclass(parser_class, Parser):
             raise CrawlerConfigurationError(
-                issue=f"Class {parser_class.__name__} must be a subclass of BaseParser",
+                issue=f"Class {parser_class.__name__} must be a subclass of Parser",
                 component="parser_registration",
             )
 
@@ -63,7 +63,7 @@ class DefaultParserFactory(ParserFactory):
         parser_class = self._get_parser_class(src.code_name)
         return self._instantiate_parser(parser_class, src)
 
-    def _get_parser_class(self, code_name: str) -> ParserClass | None:  # noqa
+    def _get_parser_class(self, code_name: str) -> ParserT | None:  # noqa
         parser_class = _parser_registry.get(code_name)
 
         if parser_class is None:
@@ -79,7 +79,7 @@ class DefaultParserFactory(ParserFactory):
 
     def _instantiate_parser(  # noqa
         self,
-        parser_class: ParserClass,
+        parser_class: ParserT,
         src: Source,
     ) -> Parser:
         try:
@@ -107,8 +107,8 @@ class DefaultParserFactory(ParserFactory):
         )
 
 
-def register(code_name: str) -> Callable[[ParserClass], ParserClass]:
-    def decorator(parser_class: ParserClass) -> ParserClass:
+def register(code_name: str) -> Callable[[ParserT], ParserT]:
+    def decorator(parser_class: ParserT) -> ParserT:
         try:
             _parser_registry.register(code_name, parser_class)
             return parser_class
