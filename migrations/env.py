@@ -7,23 +7,21 @@ from pathlib import Path
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-if PROJECT_ROOT.as_posix() not in sys.path:
-    sys.path.append(PROJECT_ROOT.as_posix())
+project_root = Path(__file__).resolve().parents[1]
+src_root = project_root / "src"
+sys.path.append(src_root.as_posix())
 
-from src import (  # noqa: E402  pylint: disable=wrong-import-position
-    config as main_app_config,
-)
-from src.database import models  # noqa: E402  pylint: disable=wrong-import-position
+from src.config import load as load_app_config  # noqa: E402
+from src.storage import models  # noqa: E402
 
 config = context.config
 if config.config_file_name:
     fileConfig(config.config_file_name)
 
-app_config = main_app_config.load()
+app_config = load_app_config()
 config.set_main_option("sqlalchemy.url", str(app_config.database.url))
 
-target_metadata = models.Base.metadata
+target_metadata = models.Model.metadata
 
 
 def _configure_alembic(**kwargs) -> None:

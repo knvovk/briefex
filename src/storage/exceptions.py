@@ -1,17 +1,19 @@
-from typing import Any, Final
+import re
+from typing import Any, NoReturn
 
-__all__ = [
-    "DatabaseError",
-    "ConnectionError",
-    "TransactionError",
-    "ModelNotFoundError",
-    "ValidationError",
-    "DuplicateError",
-    "ConstraintViolationError",
-    "QueryExecutionError",
-    "DatabaseConfigurationError",
-    "map_sqlalchemy_error",
-]
+from sqlalchemy.exc import IntegrityError
+
+DUPLICATE_KEY_RE: re.Pattern[str] = re.compile(
+    r"duplicate key value violates unique constraint "
+    r'".*?_(?P<field>\w+)_key"'
+    r".*?Detail:.*?=\s*\((?P<value>.+?)\)",
+    re.IGNORECASE | re.DOTALL,
+)
+
+CONSTRAINT_RE: re.Pattern[str] = re.compile(
+    r"violates check constraint\s+\"(?P<constraint>[^\"]+)\"",
+    re.IGNORECASE,
+)
 
 
 class DatabaseError(Exception):
@@ -134,7 +136,7 @@ class QueryExecutionError(DatabaseError):
         super().__init__(message or self.default_message, **details)
 
 
-class DatabaseConfigurationError(DatabaseError):
+class StorageConfigurationError(DatabaseError):
     default_message = "Configuration error"
 
     def __init__(
@@ -152,7 +154,7 @@ class DatabaseConfigurationError(DatabaseError):
         super().__init__(message or self.default_message, **details)
 
 
-_SQLALCHEMY_ERROR_MAPPING: Final[dict[str, type[DatabaseError]]] = {
+_SQLALCHEMY_ERROR_MAPPING: dict[str, type[DatabaseError]] = {
     "IntegrityError": DuplicateError,
     "DataError": ValidationError,
     "OperationalError": ConnectionError,
@@ -160,7 +162,7 @@ _SQLALCHEMY_ERROR_MAPPING: Final[dict[str, type[DatabaseError]]] = {
 }
 
 
-def map_sqlalchemy_error(exc: Exception, **details: Any) -> DatabaseError:
+def map_sqlalchemy_error(exc: Exception, **details) -> DatabaseError:
     err_name = type(exc).__name__
     exc_cls: type[DatabaseError] = _SQLALCHEMY_ERROR_MAPPING.get(
         err_name, DatabaseError
@@ -168,3 +170,17 @@ def map_sqlalchemy_error(exc: Exception, **details: Any) -> DatabaseError:
 
     details.setdefault("original_error", err_name)
     return exc_cls(str(exc), **details)
+
+
+def handle_integrity_err(exc: IntegrityError) -> NoReturn:
+    msg = str(exc.orig)
+
+    if m := DUPLICATE_KEY_RE.search(msg):
+        field, value = m.group("field"), m.group("value")
+        raise DuplicateError(field_name=field, value=value) from exc
+
+    if m := CONSTRAINT_RE.search(msg):
+        constraint = m.group("constraint")
+        raise ConstraintViolationError(constraint_name=constraint) from exc
+
+    raise map_sqlalchemy_error(exc) from exc  # fallback
