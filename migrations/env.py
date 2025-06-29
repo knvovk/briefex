@@ -11,8 +11,8 @@ project_root = Path(__file__).resolve().parents[1]
 src_root = project_root / "src"
 sys.path.append(src_root.as_posix())
 
-from src.config import load as load_app_config  # noqa: E402
-from src.storage import models  # noqa: E402
+from src.config import load as load_app_config
+from src.storage import models
 
 config = context.config
 if config.config_file_name:
