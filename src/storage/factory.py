@@ -1,10 +1,11 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Callable, override
+from typing import override
 
 from .base import Storage
 from .exceptions import StorageConfigurationError
 from .models import Model
+from .registry import storage_registry
 
 logger = logging.getLogger(__name__)
 
@@ -12,42 +13,10 @@ ModelT = type[Model]
 StorageT = type[Storage]
 
 
-class StorageRegistry:
-
-    def __init__(self) -> None:
-        self._registry: dict[ModelT, StorageT] = {}
-
-    def register(self, model: ModelT, storage_class: StorageT) -> None:
-        self._validate_storage_class(storage_class)
-        self._registry[model] = storage_class
-        logger.debug("%s registered for %s", storage_class.__name__, model.__name__)
-
-    def get(self, model: ModelT) -> StorageT | None:
-        return self._registry.get(model)
-
-    def is_registered(self, model: ModelT) -> bool:
-        return model in self._registry
-
-    def get_registered_models(self) -> list[ModelT]:
-        return list(self._registry.keys())
-
-    def _validate_storage_class(self, storage_class: StorageT) -> None:
-        if not isinstance(storage_class, type) or not issubclass(
-            storage_class, Storage
-        ):
-            raise StorageConfigurationError(
-                issue=f"Class {storage_class.__name__} must be a subclass of Storage",
-                component="storage_registration",
-            )
-
-
-_storage_registry = StorageRegistry()
-
-
 class StorageFactory(ABC):
 
     @abstractmethod
-    def create(self, model) -> Storage: ...
+    def create(self, model: ModelT) -> Storage: ...
 
 
 class DefaultStorageFactory(StorageFactory):
@@ -59,68 +28,51 @@ class DefaultStorageFactory(StorageFactory):
     @override
     def create(self, model: ModelT) -> Storage:
         logger.debug("Initializing storage for %s", model.__name__)
-        storage_class = self._get_storage_class(model)
-        return self._instantiate_storage(storage_class, model)
+        cls = self._get_storage_class(model)
+        return self._instantiate_storage(cls, model)
 
-    def _get_storage_class(self, model: ModelT) -> StorageT | None:  #
-        storage_class = _storage_registry.get(model)
-
-        if storage_class is None:
-            models = _storage_registry.get_registered_models()
-            storage_list = [_storage_registry.get(m).__name__ for m in models]
+    @staticmethod
+    def _get_storage_class(model: ModelT) -> StorageT | None:
+        if model not in storage_registry:
+            available_storages = storage_registry.get_storage_names()
+            storages_str = (
+                ", ".join(available_storages) if available_storages else "None"
+            )
             raise StorageConfigurationError(
                 issue=f"No storage registered for {model.__name__}. "
-                f"Registered storages: {', '.join(storage_list or 'None')}",
+                f"Available storages: {storages_str}",
                 component="storage_selection",
             )
 
-        return storage_class
+        return storage_registry[model]
 
-    def _instantiate_storage(
-        self,
-        storage_class: StorageT,
-        model: ModelT,
-    ) -> Storage:
+    @staticmethod
+    def _instantiate_storage(cls: StorageT, model: ModelT) -> Storage:
         try:
-            storage = storage_class()
-            logger.info("%s initialized for %s", storage_class.__name__, model.__name__)
+            storage = cls()
+            logger.info("%s initialized for %s", cls.__name__, model.__name__)
             return storage
-
         except Exception as exc:
-            logger.error("Failed to instantiate %s: %s", storage_class.__name__, exc)
+            logger.error("Failed to instantiate %s: %s", cls.__name__, exc)
             raise StorageConfigurationError(
-                issue=f"Storage instantiation failed for {storage_class.__name__}: {exc}",
+                issue=f"Storage instantiation failed for {cls.__name__}: {exc}",
                 component="storage_instantiation",
             ) from exc
 
-    def _log_initialization(self) -> None:
-        models = _storage_registry.get_registered_models()
-        storage_list = [_storage_registry.get(m).__name__ for m in models]
+    @staticmethod
+    def _log_initialization() -> None:
+        storage_count = len(storage_registry)
+        if storage_count == 0:
+            logger.warning("StorageFactory initialized with no registered storages")
+            return
+
+        storage_names = storage_registry.get_storage_names()
         logger.info(
-            "StorageFactory initialized with %d registered storages: %s",
-            len(models),
-            ", ".join(storage_list),
+            "StorageFactory initialized with %d storage%s: %s",
+            storage_count,
+            "s" if storage_count > 1 else "",
+            ", ".join(storage_names),
         )
-
-
-def register(model: ModelT) -> Callable[[StorageT], StorageT]:
-    def decorator(storage_class: StorageT) -> StorageT:
-        try:
-            _storage_registry.register(model, storage_class)
-            return storage_class
-        except Exception as exc:
-            logger.error(
-                "Failed to register storage %s for %s: %s",
-                storage_class.__name__,
-                model.__name__,
-                exc,
-            )
-            raise StorageConfigurationError(
-                issue=f"Registration failed for {storage_class.__name__}: {exc}",
-                component="storage_registration",
-            )
-
-    return decorator
 
 
 def create_default_storage_factory() -> StorageFactory:
