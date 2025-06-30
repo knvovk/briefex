@@ -5,9 +5,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .base import Storage
-from .factory import register
 from .models import Post
-from .session import ensure_session
+from .registry import register
+from .session import inject_session
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ class PostStorage(Storage[Post]):
     def __init__(self) -> None:
         super().__init__(Post)
 
-    @ensure_session
+    @inject_session
     def get_recent(self, days: int, *, session: Session) -> list[Post]:
         return self._execute(lambda: self._get_recent_func(days, session))
 

@@ -1,8 +1,8 @@
 import logging
 
 from .base import Storage
-from .factory import register
 from .models import Source
+from .registry import register
 
 logger = logging.getLogger(__name__)
 

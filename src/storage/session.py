@@ -103,7 +103,7 @@ def session_scope() -> Generator[Session, None, None]:
         session.close()
 
 
-def ensure_session(func: Callable[P, R]) -> Callable[P, R]:
+def inject_session(func: Callable[P, R]) -> Callable[P, R]:
     @wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs):
         if kwargs.get("session") is None:

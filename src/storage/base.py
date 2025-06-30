@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .exceptions import ModelNotFoundError, handle_integrity_err, map_sqlalchemy_error
-from .session import ensure_session
+from .session import inject_session
 
 logger = logging.getLogger(__name__)
 
@@ -20,19 +20,19 @@ class Storage[T]:
     def __init__(self, model: type[T]) -> None:
         self._model: type[T] = model
 
-    @ensure_session
+    @inject_session
     def add(self, obj: T, *, session: Session) -> T:
         return self._execute(lambda: self._add_func(obj, session))
 
-    @ensure_session
+    @inject_session
     def add_many(self, objs: list[T], *, session: Session) -> list[T]:
         return self._execute(lambda: self._add_many_func(objs, session))
 
-    @ensure_session
+    @inject_session
     def get(self, pk: Any, *, session: Session) -> T:
         return self._execute(lambda: self._get_func(pk, session))
 
-    @ensure_session
+    @inject_session
     def get_many(
         self,
         filters: dict[str, Any] | None = None,
@@ -41,23 +41,22 @@ class Storage[T]:
     ) -> list[T]:
         return self._execute(lambda: self._get_many_func(filters or {}, session))
 
-    @ensure_session
+    @inject_session
     def update(self, pk: Any, data: dict[str, Any], *, session: Session) -> T:
         return self._execute(lambda: self._update_func(pk, data, session))
 
-    @ensure_session
+    @inject_session
     def delete(self, pk: Any, *, session: Session) -> None:
         self._execute(lambda: self._delete_func(pk, session))
         return None
 
-    def _execute(self, operation: Callable[[], R]) -> R:
+    @staticmethod
+    def _execute(operation: Callable[[], R]) -> R:
         try:
             return operation()
-
         except IntegrityError as exc:
             logger.debug("IntegrityError caught: %s", exc, exc_info=True)
             handle_integrity_err(exc)
-
         except Exception as exc:
             logger.error("Unexpected error: %s", exc, exc_info=True)
             raise map_sqlalchemy_error(exc) from exc
