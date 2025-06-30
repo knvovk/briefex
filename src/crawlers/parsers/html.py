@@ -13,7 +13,7 @@ import utils
 from ..exceptions import ParseContentError, ParseError, ParseStructureError
 from ..models import PostDraft, Source
 from .base import Parser
-from .factory import register
+from .registry import register
 
 logger = logging.getLogger(__name__)
 
