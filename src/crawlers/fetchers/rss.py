@@ -4,7 +4,7 @@ from typing import override
 from ..exceptions import FetchError
 from ..models import SourceType
 from .base import Fetcher
-from .factory import register
+from .registry import register
 
 logger = logging.getLogger(__name__)
 

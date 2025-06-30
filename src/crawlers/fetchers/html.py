@@ -23,9 +23,21 @@ from ..exceptions import (
 )
 from ..models import SourceType
 from .base import Fetcher
-from .factory import register
+from .registry import register
 
 logger = logging.getLogger(__name__)
+
+
+class HTTPStatusCode:
+    OK = 200
+    FOUND = 302
+    BAD_REQUEST = 400
+    UNAUTHORIZED = 401
+    FORBIDDEN = 403
+    NOT_FOUND = 404
+    TOO_MANY_REQUESTS = 429
+    INTERNAL_SERVER_ERROR = 500
+    SERVICE_UNAVAILABLE = 503
 
 
 class Config(BaseModel):
@@ -56,16 +68,61 @@ DEFAULT_CONFIG = Config(
 )
 
 
-class HTTPStatusCode:
-    OK = 200
-    FOUND = 302
-    BAD_REQUEST = 400
-    UNAUTHORIZED = 401
-    FORBIDDEN = 403
-    NOT_FOUND = 404
-    TOO_MANY_REQUESTS = 429
-    INTERNAL_SERVER_ERROR = 500
-    SERVICE_UNAVAILABLE = 503
+def _build_config(kwargs: dict) -> Config:
+    try:
+        return Config(
+            user_agents=kwargs.get("user_agents", DEFAULT_CONFIG.user_agents),
+            request_timeout=kwargs.get(
+                "request_timeout",
+                DEFAULT_CONFIG.request_timeout,
+            ),
+            pool_connections=kwargs.get(
+                "pool_connections",
+                DEFAULT_CONFIG.pool_connections,
+            ),
+            pool_maxsize=kwargs.get("pool_maxsize", DEFAULT_CONFIG.pool_maxsize),
+            max_retries=kwargs.get("max_retries", DEFAULT_CONFIG.max_retries),
+            retry_delay=kwargs.get("retry_delay", DEFAULT_CONFIG.retry_delay),
+            max_retry_delay=kwargs.get(
+                "max_retry_delay",
+                DEFAULT_CONFIG.max_retry_delay,
+            ),
+        )
+    except Exception as exc:
+        raise CrawlerConfigurationError(
+            issue=f"Invalid configuration parameters: {exc}",
+            component="fetcher_configuration",
+        ) from exc
+
+
+def _validate_url(url: str) -> None:
+    if not url or not url.strip():
+        raise InvalidSourceError("", "URL cannot be empty")
+
+    url = url.strip()
+    parsed = urlparse(url)
+
+    if parsed.scheme not in ("http", "https"):
+        raise InvalidSourceError(url, "URL must use HTTP or HTTPS scheme")
+
+    if not parsed.netloc:
+        raise InvalidSourceError(url, "URL must contain a valid domain")
+
+    # Check for invalid characters
+    invalid_chars = {" ", "\n", "\r", "\t"}
+    if any(char in url for char in invalid_chars):
+        raise InvalidSourceError(url, "URL contains invalid whitespace characters")
+
+
+def _parse_retry_after(retry_after: str | None) -> int | None:
+    if not retry_after:
+        return None
+
+    try:
+        return int(retry_after)
+    except ValueError:
+        logger.debug("Invalid Retry-After header value: %s", retry_after)
+        return None
 
 
 @register(SourceType.HTML)
@@ -74,55 +131,15 @@ class HTMLFetcher(Fetcher):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._session: requests.Session | None = None
-        self._config = self._build_config(kwargs)
+        self._config = _build_config(kwargs)
         self._setup_session()
 
     @override
     def fetch(self, url: str) -> bytes:
         logger.info("Fetching HTML content from %s", url)
-        self._validate_url(url)
+        _validate_url(url)
         headers = {"User-Agent": self._get_random_user_agent()}
         return self._fetch_with_retries(url, headers)
-
-    def _build_config(self, kwargs: dict) -> Config:
-        try:
-            return Config(
-                user_agents=kwargs.get("user_agents", DEFAULT_CONFIG.user_agents),
-                request_timeout=kwargs.get(
-                    "request_timeout",
-                    DEFAULT_CONFIG.request_timeout,
-                ),
-                pool_connections=kwargs.get(
-                    "pool_connections",
-                    DEFAULT_CONFIG.pool_connections,
-                ),
-                pool_maxsize=kwargs.get("pool_maxsize", DEFAULT_CONFIG.pool_maxsize),
-                max_retries=kwargs.get("max_retries", DEFAULT_CONFIG.max_retries),
-                retry_delay=kwargs.get("retry_delay", DEFAULT_CONFIG.retry_delay),
-            )
-        except Exception as exc:
-            raise CrawlerConfigurationError(
-                issue=f"Invalid configuration parameters: {exc}",
-                component="fetcher_configuration",
-            ) from exc
-
-    def _validate_url(self, url: str) -> None:
-        if not url or not url.strip():
-            raise InvalidSourceError("", "URL cannot be empty")
-
-        url = url.strip()
-        parsed = urlparse(url)
-
-        if parsed.scheme not in ("http", "https"):
-            raise InvalidSourceError(url, "URL must use HTTP or HTTPS scheme")
-
-        if not parsed.netloc:
-            raise InvalidSourceError(url, "URL must contain a valid domain")
-
-        # Check for invalid characters
-        invalid_chars = {" ", "\n", "\r", "\t"}
-        if any(char in url for char in invalid_chars):
-            raise InvalidSourceError(url, "URL contains invalid whitespace characters")
 
     def _fetch_with_retries(self, url: str, headers: dict[str, str]) -> bytes:
         last_exception = None
@@ -249,27 +266,15 @@ class HTMLFetcher(Fetcher):
                 url, response.status_code, response.reason or "Client error"
             )
 
-    def _handle_rate_limit(
-        self,
-        url: str,
-        response: requests.Response,
-    ) -> RateLimitError:
+    @staticmethod
+    def _handle_rate_limit(url: str, response: requests.Response) -> RateLimitError:
         retry_after_header = response.headers.get("Retry-After")
-        retry_after = self._parse_retry_after(retry_after_header)
+        retry_after = _parse_retry_after(retry_after_header)
         logger.warning("Rate limit exceeded for %s, retry after: %s", url, retry_after)
         return RateLimitError(url, retry_after)
 
-    def _parse_retry_after(self, retry_after: str | None) -> int | None:
-        if not retry_after:
-            return None
-
-        try:
-            return int(retry_after)
-        except ValueError:
-            logger.debug("Invalid Retry-After header value: %s", retry_after)
-            return None
-
-    def _log_response_info(self, url: str, response: requests.Response) -> None:
+    @staticmethod
+    def _log_response_info(url: str, response: requests.Response) -> None:
         try:
             content_size = utils.pretty_print_size(len(response.content))
             status = response.status_code
