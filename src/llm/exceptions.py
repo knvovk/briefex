@@ -28,11 +28,11 @@ class LLMConfigurationError(LLMException):
 
 class LLMAuthenticationError(LLMException):
 
-    def __init__(self, provider: str, reason: str) -> None:
+    def __init__(self, client: str, reason: str) -> None:
         super().__init__(
             message="Authentication error",
             details={
-                "provider": provider,
+                "client": client,
                 "reason": reason,
             },
         )
@@ -40,11 +40,11 @@ class LLMAuthenticationError(LLMException):
 
 class LLMAuthorizationError(LLMException):
 
-    def __init__(self, provider: str, reason: str, resource: str) -> None:
+    def __init__(self, client: str, reason: str, resource: str) -> None:
         super().__init__(
             message="Authorization error",
             details={
-                "provider": provider,
+                "client": client,
                 "reason": reason,
                 "resource": resource,
             },
@@ -53,11 +53,11 @@ class LLMAuthorizationError(LLMException):
 
 class LLMNetworkError(LLMException):
 
-    def __init__(self, provider: str, reason: str) -> None:
+    def __init__(self, client: str, reason: str) -> None:
         super().__init__(
             message="Network error",
             details={
-                "provider": provider,
+                "client": client,
                 "reason": reason,
             },
         )
@@ -65,11 +65,11 @@ class LLMNetworkError(LLMException):
 
 class LLMTimeoutError(LLMException):
 
-    def __init__(self, provider: str, timeout: int) -> None:
+    def __init__(self, client: str, timeout: int) -> None:
         super().__init__(
             message="Timeout error",
             details={
-                "provider": provider,
+                "client": client,
                 "timeout": timeout,
             },
         )
@@ -79,7 +79,7 @@ class LLMValidationError(LLMException):
 
     def __init__(
         self,
-        provider: str,
+        client: str,
         parameter: str,
         actual_value: str,
         expected_value: str,
@@ -87,7 +87,7 @@ class LLMValidationError(LLMException):
         super().__init__(
             message="Validation error",
             details={
-                "provider": provider,
+                "client": client,
                 "parameter": parameter,
                 "actual_value": actual_value,
                 "expected_value": expected_value,
@@ -97,11 +97,11 @@ class LLMValidationError(LLMException):
 
 class LLMResponseError(LLMException):
 
-    def __init__(self, provider: str, reason: str, raw_response: str = "") -> None:
+    def __init__(self, client: str, reason: str, raw_response: str = "") -> None:
         super().__init__(
             message="Response error",
             details={
-                "provider": provider,
+                "client": client,
                 "reason": reason,
                 "raw_response": raw_response,
             },
@@ -110,11 +110,11 @@ class LLMResponseError(LLMException):
 
 class LLMParsingError(LLMException):
 
-    def __init__(self, provider: str, reason: str, raw_response: str = "") -> None:
+    def __init__(self, client: str, reason: str, raw_response: str = "") -> None:
         super().__init__(
             message="Parse error",
             details={
-                "provider": provider,
+                "client": client,
                 "reason": reason,
                 "raw_response": raw_response,
             },
@@ -125,14 +125,14 @@ class LLMRateLimitError(LLMException):
 
     def __init__(
         self,
-        provider: str,
+        client: str,
         limit_type: str,
         retry_after: int | None = None,
     ) -> None:
         super().__init__(
             message="Rate limit exceeded",
             details={
-                "provider": provider,
+                "client": client,
                 "limit_type": limit_type,
                 "retry_after": retry_after,
             },
@@ -143,14 +143,14 @@ class LLMQuotaExceededError(LLMException):
 
     def __init__(
         self,
-        provider: str,
+        client: str,
         quota_type: str,
         reset_time: str | None = None,
     ) -> None:
         super().__init__(
             message="Quota exceeded",
             details={
-                "provider": provider,
+                "client": client,
                 "quota_type": quota_type,
                 "reset_time": reset_time,
             },
@@ -159,11 +159,11 @@ class LLMQuotaExceededError(LLMException):
 
 class LLMContentFilterError(LLMException):
 
-    def __init__(self, provider: str, reason: str) -> None:
+    def __init__(self, client: str, reason: str) -> None:
         super().__init__(
             message="Content filtered",
             details={
-                "provider": provider,
+                "client": client,
                 "reason": reason,
             },
         )
