@@ -34,8 +34,7 @@ class DefaultFetcherFactory(FetcherFactory):
         cls = self._get_fetcher_class(src_type)
         return self._instantiate_fetcher(cls, src_type)
 
-    @staticmethod
-    def _get_fetcher_class(src_type: SourceType) -> FetcherT:
+    def _get_fetcher_class(self, src_type: SourceType) -> FetcherT:
         if src_type not in fetcher_registry:
             available_fetchers = fetcher_registry.get_fetcher_names()
             fetchers_str = (
@@ -61,8 +60,7 @@ class DefaultFetcherFactory(FetcherFactory):
                 component="fetcher_instantiation",
             ) from exc
 
-    @staticmethod
-    def _log_initialization() -> None:
+    def _log_initialization(self) -> None:
         fetcher_count = len(fetcher_registry)
         if fetcher_count == 0:
             logger.warning("FetcherFactory initialized with no registered fetchers")

@@ -30,8 +30,7 @@ class DefaultParserFactory(ParserFactory):
         cls = self._get_parser_class(src.code_name)
         return self._instantiate_parser(cls, src)
 
-    @staticmethod
-    def _get_parser_class(code_name: str) -> ParserT | None:
+    def _get_parser_class(self, code_name: str) -> ParserT | None:
         if code_name not in parser_registry:
             available_parsers = parser_registry.get_parser_names()
             parsers_str = ", ".join(available_parsers) if available_parsers else "None"
@@ -43,8 +42,7 @@ class DefaultParserFactory(ParserFactory):
 
         return parser_registry[code_name]
 
-    @staticmethod
-    def _instantiate_parser(cls: ParserT, src: Source) -> Parser:
+    def _instantiate_parser(self, cls: ParserT, src: Source) -> Parser:
         try:
             parser = cls(src)
             logger.info("%s initialized for %s", cls.__name__, src)
@@ -56,8 +54,7 @@ class DefaultParserFactory(ParserFactory):
                 component="parser_instantiation",
             ) from exc
 
-    @staticmethod
-    def _log_initialization() -> None:
+    def _log_initialization(self) -> None:
         parser_count = len(parser_registry)
         if parser_count == 0:
             logger.warning("ParserFactory initialized with no registered parsers")

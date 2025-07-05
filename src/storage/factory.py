@@ -31,8 +31,7 @@ class DefaultStorageFactory(StorageFactory):
         cls = self._get_storage_class(model)
         return self._instantiate_storage(cls, model)
 
-    @staticmethod
-    def _get_storage_class(model: ModelT) -> StorageT | None:
+    def _get_storage_class(self, model: ModelT) -> StorageT | None:
         if model not in storage_registry:
             available_storages = storage_registry.get_storage_names()
             storages_str = (
@@ -46,8 +45,7 @@ class DefaultStorageFactory(StorageFactory):
 
         return storage_registry[model]
 
-    @staticmethod
-    def _instantiate_storage(cls: StorageT, model: ModelT) -> Storage:
+    def _instantiate_storage(self, cls: StorageT, model: ModelT) -> Storage:
         try:
             storage = cls()
             logger.info("%s initialized for %s", cls.__name__, model.__name__)
@@ -59,8 +57,7 @@ class DefaultStorageFactory(StorageFactory):
                 component="storage_instantiation",
             ) from exc
 
-    @staticmethod
-    def _log_initialization() -> None:
+    def _log_initialization(self) -> None:
         storage_count = len(storage_registry)
         if storage_count == 0:
             logger.warning("StorageFactory initialized with no registered storages")

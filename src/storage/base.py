@@ -50,8 +50,7 @@ class Storage[T]:
         self._execute(lambda: self._delete_func(pk, session))
         return None
 
-    @staticmethod
-    def _execute(operation: Callable[[], R]) -> R:
+    def _execute(self, operation: Callable[[], R]) -> R:
         try:
             return operation()
         except IntegrityError as exc:

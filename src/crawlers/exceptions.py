@@ -100,7 +100,12 @@ class PostValidationError(PostError):
 
 class PostProcessingError(PostError):
 
-    def __init__(self, post_url: str, processing_stage: str, error_details: str) -> None:
+    def __init__(
+        self,
+        post_url: str,
+        processing_stage: str,
+        error_details: str,
+    ) -> None:
         message = f"Error processing post URL: {post_url} (stage={processing_stage})"
         details = {
             "post_url": post_url,

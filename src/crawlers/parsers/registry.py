@@ -16,8 +16,7 @@ class ParserRegistry(dict[str, ParserT]):
         self[code_name] = cls
         logger.debug("%s registered for %s", cls.__name__, code_name)
 
-    @staticmethod
-    def _validate_parser_class(cls: ParserT) -> None:
+    def _validate_parser_class(self, cls: ParserT) -> None:
         if not isinstance(cls, type) or not issubclass(cls, Parser):
             raise CrawlerConfigurationError(
                 issue=f"Class {cls.__name__} must be a subclass of Parser",

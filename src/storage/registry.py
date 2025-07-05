@@ -18,8 +18,7 @@ class StorageRegistry(dict[ModelT, StorageT]):
         self[model] = cls
         logger.debug("%s registered for %s", cls.__name__, model.__name__)
 
-    @staticmethod
-    def _validate_storage_class(cls: StorageT) -> None:
+    def _validate_storage_class(self, cls: StorageT) -> None:
         if not isinstance(cls, type) or not issubclass(cls, Storage):
             raise StorageConfigurationError(
                 issue=f"Class {cls.__name__} must be a subclass of Storage",

@@ -17,8 +17,7 @@ class FetcherRegistry(dict[SourceType, FetcherT]):
         self[src_type] = cls
         logger.debug("%s registered for %s", cls.__name__, src_type)
 
-    @staticmethod
-    def _validate_fetcher_class(cls: FetcherT) -> None:
+    def _validate_fetcher_class(self, cls: FetcherT) -> None:
         if not isinstance(cls, type) or not issubclass(cls, Fetcher):
             raise CrawlerConfigurationError(
                 issue=f"Class {cls.__name__} must be a subclass of Fetcher",

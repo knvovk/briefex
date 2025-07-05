@@ -50,43 +50,16 @@ class Config(BaseModel):
     max_retry_delay: float
 
 
-DEFAULT_CONFIG = Config(
-    user_agents=[
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Edge/120.0.2210.91 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_1) AppleWebKit/605.1.15 "
-        "(KHTML, like Gecko) Version/17.1 Safari/605.1.15",
-    ],
-    request_timeout=30,
-    pool_connections=100,
-    pool_maxsize=100,
-    max_retries=3,
-    retry_delay=1.0,
-    max_retry_delay=60,
-)
-
-
 def _build_config(kwargs: dict) -> Config:
     try:
         return Config(
-            user_agents=kwargs.get("user_agents", DEFAULT_CONFIG.user_agents),
-            request_timeout=kwargs.get(
-                "request_timeout",
-                DEFAULT_CONFIG.request_timeout,
-            ),
-            pool_connections=kwargs.get(
-                "pool_connections",
-                DEFAULT_CONFIG.pool_connections,
-            ),
-            pool_maxsize=kwargs.get("pool_maxsize", DEFAULT_CONFIG.pool_maxsize),
-            max_retries=kwargs.get("max_retries", DEFAULT_CONFIG.max_retries),
-            retry_delay=kwargs.get("retry_delay", DEFAULT_CONFIG.retry_delay),
-            max_retry_delay=kwargs.get(
-                "max_retry_delay",
-                DEFAULT_CONFIG.max_retry_delay,
-            ),
+            user_agents=kwargs.get("user_agents"),
+            request_timeout=kwargs.get("request_timeout"),
+            pool_connections=kwargs.get("pool_connections"),
+            pool_maxsize=kwargs.get("pool_maxsize"),
+            max_retries=kwargs.get("max_retries"),
+            retry_delay=kwargs.get("retry_delay"),
+            max_retry_delay=kwargs.get("max_retry_delay"),
         )
     except Exception as exc:
         raise CrawlerConfigurationError(
@@ -266,15 +239,17 @@ class HTMLFetcher(Fetcher):
                 url, response.status_code, response.reason or "Client error"
             )
 
-    @staticmethod
-    def _handle_rate_limit(url: str, response: requests.Response) -> RateLimitError:
+    def _handle_rate_limit(
+        self,
+        url: str,
+        response: requests.Response,
+    ) -> RateLimitError:
         retry_after_header = response.headers.get("Retry-After")
         retry_after = _parse_retry_after(retry_after_header)
         logger.warning("Rate limit exceeded for %s, retry after: %s", url, retry_after)
         return RateLimitError(url, retry_after)
 
-    @staticmethod
-    def _log_response_info(url: str, response: requests.Response) -> None:
+    def _log_response_info(self, url: str, response: requests.Response) -> None:
         try:
             content_size = utils.pretty_print_size(len(response.content))
             status = response.status_code
