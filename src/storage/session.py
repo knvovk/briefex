@@ -6,7 +6,7 @@ from typing import Callable, Generator, ParamSpec, TypeVar
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, scoped_session, sessionmaker
 
-import config
+from config import settings
 
 from .exceptions import StorageConfigurationError
 
@@ -14,8 +14,6 @@ logger = logging.getLogger(__name__)
 
 P = ParamSpec("P")
 R = TypeVar("R")
-
-db_cfg = config.load().database
 
 
 @lru_cache(maxsize=1)
@@ -79,13 +77,16 @@ def create_storage_session_factory(
         ) from exc
 
 
-engine = create_storage_engine(url=str(db_cfg.url), echo=db_cfg.echo)
+engine = create_storage_engine(
+    url=str(settings.sqlalchemy.url),
+    echo=settings.sqlalchemy.echo,
+)
 
 StorageSession = create_storage_session_factory(
     bind=engine,
-    autoflush=db_cfg.autoflush,
-    autocommit=db_cfg.autocommit,
-    expire_on_commit=db_cfg.expire_on_commit,
+    autoflush=settings.sqlalchemy.autoflush,
+    autocommit=settings.sqlalchemy.autocommit,
+    expire_on_commit=settings.sqlalchemy.expire_on_commit,
 )
 
 
