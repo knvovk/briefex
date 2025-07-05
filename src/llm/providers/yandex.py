@@ -9,9 +9,7 @@ from yandex_cloud_ml_sdk._models.completions.result import (
 )
 from yandex_cloud_ml_sdk.auth import APIKeyAuth
 
-from . import ChatCompletionParams, ChatCompletionUsage
-from .base import LLMClient
-from .exceptions import (
+from ..exceptions import (
     LLMAuthenticationError,
     LLMConfigurationError,
     LLMContentFilterError,
@@ -19,13 +17,16 @@ from .exceptions import (
     LLMParsingError,
     LLMRequestError,
 )
-from .models import (
+from ..models import (
     ChatCompletionMessage,
+    ChatCompletionParams,
     ChatCompletionRequest,
     ChatCompletionResponse,
+    ChatCompletionUsage,
     Model,
     Role,
 )
+from .base import LLMProvider
 from .registry import register
 
 logger = logging.getLogger(__name__)
@@ -36,14 +37,22 @@ def _message_to_dict(message: ChatCompletionMessage) -> dict[str, str]:
 
 
 @register(["yandexgpt", "yandexgpt-lite"])
-class YandexGPTClient(LLMClient):
+class YandexGPTProvider(LLMProvider):
 
-    def __init__(self, *args, folder_id: str, api_key: str, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        yandex_gpt_folder_id: str,
+        yandex_gpt_api_key: str,
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
         try:
-            self._folder_id = folder_id
-            self._api_key = api_key
-            self._client = YCloudML(folder_id=folder_id, auth=APIKeyAuth(api_key))
+            self._folder_id = yandex_gpt_folder_id
+            self._api_key = yandex_gpt_api_key
+            self._client = YCloudML(
+                folder_id=yandex_gpt_folder_id,
+                auth=APIKeyAuth(yandex_gpt_api_key),
+            )
 
         except Exception as exc:
             err_msg = str(exc).lower()
@@ -64,36 +73,20 @@ class YandexGPTClient(LLMClient):
             ) from exc
 
     @override
-    def completions(self, req: ChatCompletionRequest) -> ChatCompletionResponse:
-        logger.info(
-            "Starting new chat completion (model=%s, temperature=%.2f, max_tokens=%d)",
-            req.model,
-            req.params.temperature,
-            req.params.max_tokens,
-        )
-
+    def complete(self, request: ChatCompletionRequest) -> ChatCompletionResponse:
         try:
-            configured_model = self._get_configured_model(req.model, req.params)
-            messages = [_message_to_dict(msg) for msg in req.messages]
+            configured_model = self._get_configured_model(request.model, request.params)
+            messages = [_message_to_dict(msg) for msg in request.messages]
 
             logger.debug(
                 "Sending request to model: %s (messages_count=%d)",
-                req.model,
+                request.model,
                 len(messages),
             )
             result = configured_model.run(messages)
             self._raise_for_status(result)
 
-            response = self._create_completion_response(req.model, result)
-            logger.info(
-                "Completion succeeded (model=%s, status=%s, "
-                "prompt_tokens=%d, completion_tokens=%d, total_tokens=%d)",
-                req.model,
-                result.status,
-                response.usage.prompt_tokens,
-                response.usage.completion_tokens,
-                response.usage.total_tokens,
-            )
+            response = self._create_completion_response(request.model, result)
             return response
 
         except LLMException:

@@ -1,5 +1,8 @@
-from .base import LLMClient
-from .factory import LLMFactory, create_default_llm_factory
+from .base import ChatCompletionManager
+from .factory import (
+    ChatCompletionManagerFactory,
+    create_chat_completion_manager_factory,
+)
 from .models import (
     ChatCompletionMessage,
     ChatCompletionParams,
@@ -8,16 +11,19 @@ from .models import (
     ChatCompletionUsage,
     Role,
 )
-from .yandex import YandexGPTClient
+from .providers import *
 
 __all__ = [
-    "LLMClient",
-    "LLMFactory",
-    "create_default_llm_factory",
+    "ChatCompletionManager",
+    "ChatCompletionManagerFactory",
+    "create_chat_completion_manager_factory",
     "ChatCompletionMessage",
     "ChatCompletionParams",
     "ChatCompletionRequest",
     "ChatCompletionResponse",
     "ChatCompletionUsage",
     "Role",
+    "LLMProvider",
+    "LLMProviderFactory",
+    "create_default_llm_provider_factory",
 ]

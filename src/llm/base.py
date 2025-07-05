@@ -2,13 +2,15 @@ import logging
 from abc import ABC, abstractmethod
 
 from .models import ChatCompletionRequest, ChatCompletionResponse
+from .providers import LLMProviderFactory
 
 logger = logging.getLogger(__name__)
 
 
-class LLMClient(ABC):
+class ChatCompletionManager(ABC):
 
-    def __init__(self, *args, **kwargs) -> None: ...
+    def __init__(self, provider_factory: LLMProviderFactory) -> None:
+        self._provider_factory = provider_factory
 
     @abstractmethod
-    def completions(self, req: ChatCompletionRequest) -> ChatCompletionResponse: ...
+    def complete(self, request: ChatCompletionRequest) -> ChatCompletionResponse: ...
