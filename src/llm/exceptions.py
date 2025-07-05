@@ -95,6 +95,18 @@ class LLMValidationError(LLMException):
         )
 
 
+class LLMRequestError(LLMException):
+
+    def __init__(self, client: str, reason: str) -> None:
+        super().__init__(
+            message="Request error",
+            details={
+                "client": client,
+                "reason": reason,
+            },
+        )
+
+
 class LLMResponseError(LLMException):
 
     def __init__(self, client: str, reason: str, raw_response: str = "") -> None:

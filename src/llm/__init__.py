@@ -6,7 +6,9 @@ from .models import (
     ChatCompletionRequest,
     ChatCompletionResponse,
     ChatCompletionUsage,
+    Role,
 )
+from .yandex import YandexGPTClient
 
 __all__ = [
     "LLMClient",
@@ -17,4 +19,5 @@ __all__ = [
     "ChatCompletionRequest",
     "ChatCompletionResponse",
     "ChatCompletionUsage",
+    "Role",
 ]
