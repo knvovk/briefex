@@ -11,15 +11,14 @@ project_root = Path(__file__).resolve().parents[1]
 src_root = project_root / "src"
 sys.path.append(src_root.as_posix())
 
-from src.config import load as load_app_config
+from src.config import settings
 from src.storage import models
 
 config = context.config
 if config.config_file_name:
     fileConfig(config.config_file_name)
 
-app_config = load_app_config()
-config.set_main_option("sqlalchemy.url", str(app_config.database.url))
+config.set_main_option("sqlalchemy.url", str(settings.sqlalchemy.url))
 
 target_metadata = models.Model.metadata
 
