@@ -18,6 +18,11 @@ env/
 .venv/
 ENV/
 
+# Configuration
+src/config/*.env
+src/config/*.toml
+src/config/*.ini
+
 # IDE
 .idea/
 .vscode/
