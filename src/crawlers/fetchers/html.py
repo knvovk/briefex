@@ -27,6 +27,15 @@ from .registry import register
 
 logger = logging.getLogger(__name__)
 
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Edge/120.0.2210.91 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_1) AppleWebKit/605.1.15 "
+    "(KHTML, like Gecko) Version/17.1 Safari/605.1.15",
+]
+
 
 class HTTPStatusCode:
     OK = 200
@@ -53,7 +62,7 @@ class Config(BaseModel):
 def _build_config(kwargs: dict) -> Config:
     try:
         return Config(
-            user_agents=kwargs.get("user_agents"),
+            user_agents=kwargs.get("user_agents") or USER_AGENTS,
             request_timeout=kwargs.get("request_timeout"),
             pool_connections=kwargs.get("pool_connections"),
             pool_maxsize=kwargs.get("pool_maxsize"),
