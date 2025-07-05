@@ -1,57 +1,63 @@
-from functools import lru_cache
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Sequence
 
-from pydantic import BaseModel, PostgresDsn
-from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict, TomlConfigSettingsSource
+from pydantic import BaseModel, Field, PostgresDsn
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-CONFIG_ROOT = PROJECT_ROOT / "config"
-
-DEFAULT_REQUEST_TIMEOUT = 30
-DEFAULT_POOL_CONNECTIONS = 100
-DEFAULT_POOL_MAXSIZE = 30
-DEFAULT_MAX_RETRIES = 3
-DEFAULT_RETRY_DELAY = 1.0
-DEFAULT_MAX_RETRY_DELAY = 1.0
-
-CONFIG_FILES = [
-    CONFIG_ROOT / "config.toml",
-    CONFIG_ROOT / "config.dev.toml",
-]
+BASE_DIR = Path(__file__).resolve().parent
+ENV_PATH = BASE_DIR / ".env"
 
 
-class CrawlerConfig(BaseSettings):
-    user_agents: Sequence[str] = []
-    request_timeout: int = DEFAULT_REQUEST_TIMEOUT
-    pool_connections: int = DEFAULT_POOL_CONNECTIONS
-    pool_maxsize: int = DEFAULT_POOL_MAXSIZE
-    max_retries: int = DEFAULT_MAX_RETRIES
-    retry_delay: float = DEFAULT_RETRY_DELAY
-    max_retry_delay: float = DEFAULT_MAX_RETRY_DELAY
+class CrawlerConfig(BaseModel):
+    req_timeout: int = Field(description="Request timeout in seconds")
+    pool_conn: int = Field(description="Connection pool size")
+    pool_max_size: int = Field(description="Maximum pool size")
+    max_retries: int = Field(description="Maximum number of retry attempts")
+    retry_delay: float = Field(description="Initial delay between retries in seconds")
+    max_retry_delay: float = Field(
+        description="Maximum delay between retries in seconds"
+    )
 
 
-class DatabaseConfig(BaseModel):
-    dsn: PostgresDsn
+class LLMConfig(BaseModel):
+    # GigaChat settings
+    giga_chat_client_id: str = Field(description="GigaChat client ID")
+    giga_chat_client_secret: str = Field(description="GigaChat client secret")
+    giga_chat_auth_key: str = Field(description="GigaChat authentication key")
+    giga_chat_scope: str = Field(description="GigaChat API scope")
+
+    # YandexGPT settings
+    yandex_gpt_folder_id: str = Field(description="YandexGPT folder ID")
+    yandex_gpt_api_key: str = Field(description="YandexGPT API key")
+
+    # General LLM settings
+    completion_model: str = Field(description="Default completion model to use")
+    completion_temperature: float = Field(description="Model temperature parameter")
+    completion_max_tokens: int = Field(description="Maximum tokens for completion")
 
 
-class Config(BaseSettings):
-    model_config = SettingsConfigDict(toml_file=CONFIG_FILES)
-    crawler: CrawlerConfig
-    database: DatabaseConfig
-
-    @classmethod
-    def settings_customise_sources(
-        cls,
-        settings_cls: type[BaseSettings],
-        init_settings: PydanticBaseSettingsSource,
-        env_settings: PydanticBaseSettingsSource,
-        dotenv_settings: PydanticBaseSettingsSource,
-        file_secret_settings: PydanticBaseSettingsSource,
-    ) -> tuple[PydanticBaseSettingsSource, ...]:
-        return (TomlConfigSettingsSource(settings_cls),)
+class SQLAlchemyConfig(BaseModel):
+    url: PostgresDsn = Field(description="Database connection URL")
+    echo: bool = Field(description="Enable SQL query logging")
+    autoflush: bool = Field(description="Enable autoflush")
+    autocommit: bool = Field(description="Enable autocommit")
+    expire_on_commit: bool = Field(description="Expire objects on commit")
 
 
-@lru_cache
-def load() -> Config:
-    return Config()  # noqa
+class Settings(BaseSettings):
+    crawler: CrawlerConfig = Field(default_factory=CrawlerConfig)
+    llm: LLMConfig = Field(default_factory=LLMConfig)
+    sqlalchemy: SQLAlchemyConfig = Field(default_factory=SQLAlchemyConfig)
+
+    model_config = SettingsConfigDict(
+        case_sensitive=False,
+        env_file=ENV_PATH,
+        env_file_encoding="utf-8",
+        env_nested_delimiter="_",
+        env_nested_max_split=1,
+        extra="ignore",
+    )
+
+
+settings = Settings()
