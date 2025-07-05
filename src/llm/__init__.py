@@ -25,5 +25,5 @@ __all__ = [
     "Role",
     "LLMProvider",
     "LLMProviderFactory",
-    "create_default_llm_provider_factory",
+    "create_llm_provider_factory",
 ]

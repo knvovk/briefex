@@ -79,5 +79,5 @@ class LLMProviderFactoryImpl(LLMProviderFactory):
         )
 
 
-def create_default_llm_provider_factory(**kwargs) -> LLMProviderFactory:
+def create_llm_provider_factory(**kwargs) -> LLMProviderFactory:
     return LLMProviderFactoryImpl(**kwargs)
