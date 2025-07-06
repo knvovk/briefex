@@ -44,22 +44,26 @@ class LLMConfig(BaseModel):
     and general LLM settings for text completion.
 
     Attributes:
-        giga_chat_client_id: GigaChat client ID.
-        giga_chat_client_secret: GigaChat client secret.
-        giga_chat_auth_key: GigaChat authentication key.
-        giga_chat_scope: GigaChat API scope.
+        gigachat_client_id: GigaChat client ID.
+        gigachat_client_secret: GigaChat client secret.
+        gigachat_auth_key: GigaChat authentication key.
+        gigachat_scope: GigaChat API scope.
+        gigachat_verify_ssl_certs: Enable SSL certificate verification.
+
         yandex_gpt_folder_id: YandexGPT folder ID.
         yandex_gpt_api_key: YandexGPT API key.
+
         completion_model: Default completion model to use.
         completion_temperature: Model temperature parameter.
         completion_max_tokens: Maximum tokens for completion.
     """
 
     # GigaChat settings
-    giga_chat_client_id: str = Field(description="GigaChat client ID")
-    giga_chat_client_secret: str = Field(description="GigaChat client secret")
-    giga_chat_auth_key: str = Field(description="GigaChat authentication key")
-    giga_chat_scope: str = Field(description="GigaChat API scope")
+    gigachat_client_id: str = Field(description="GigaChat client ID")
+    gigachat_client_secret: str = Field(description="GigaChat client secret")
+    gigachat_auth_key: str = Field(description="GigaChat authentication key")
+    gigachat_scope: str = Field(description="GigaChat API scope")
+    gigachat_verify_ssl_certs: bool = Field(description="GigaChat verify SSL certs")
 
     # YandexGPT settings
     yandex_gpt_folder_id: str = Field(description="YandexGPT folder ID")
