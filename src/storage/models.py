@@ -11,15 +11,42 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Model(DeclarativeBase):
+    """Base model class for all database models.
+
+    This is an abstract base class that all model classes should inherit from.
+    It provides common functionality for all models.
+    """
     __abstract__ = True
 
 
 class SourceType(str, enum.Enum):
+    """Enumeration of supported source types.
+
+    This enum defines the types of sources that can be crawled.
+
+    Attributes:
+        HTML: HTML web page source type.
+        RSS: RSS feed source type.
+    """
     HTML = "HTML"
     RSS = "RSS"
 
 
 class Source(Model):
+    """Model representing a content source.
+
+    A source is a website or feed from which posts are collected.
+
+    Attributes:
+        id: Unique identifier for the source.
+        name: Human-readable name of the source.
+        code_name: Machine-readable unique identifier for the source.
+        type: Type of the source (HTML or RSS).
+        url: URL of the source.
+        created_at: Timestamp when the source was created.
+        updated_at: Timestamp when the source was last updated.
+        posts: List of posts from this source.
+    """
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -48,10 +75,31 @@ class Source(Model):
     __tablename__ = "sources"
 
     def __repr__(self) -> str:
+        """Return a string representation of the Source object.
+
+        Returns:
+            A string containing the code_name and type of the source.
+        """
         return f"Source(code_name={self.code_name!r}, type={self.type!r})"
 
 
 class Post(Model):
+    """Model representing a content post.
+
+    A post is a piece of content collected from a source.
+
+    Attributes:
+        id: Unique identifier for the post.
+        title: Title of the post.
+        content: Full content of the post.
+        summary: Brief summary of the post content.
+        canonical_url: Original URL of the post.
+        source_id: ID of the source this post was collected from.
+        published_at: Timestamp when the post was published.
+        created_at: Timestamp when the post was created in the system.
+        updated_at: Timestamp when the post was last updated.
+        source: The source this post was collected from.
+    """
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -88,4 +136,9 @@ class Post(Model):
     __tablename__ = "posts"
 
     def __repr__(self) -> str:
+        """Return a string representation of the Post object.
+
+        Returns:
+            A string containing the title and source of the post.
+        """
         return f"Post(title={self.title!r}, source={self.source!r})"
