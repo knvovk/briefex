@@ -6,10 +6,27 @@ from pydantic import BaseModel, Field, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent
+"""Path to the base directory of the config module."""
+
 ENV_PATH = BASE_DIR / ".env"
+"""Path to the environment file."""
 
 
 class CrawlerConfig(BaseModel):
+    """Configuration for web crawler settings.
+
+    This class defines parameters for HTTP requests, connection pooling,
+    and retry behavior for the web crawler component.
+
+    Attributes:
+        req_timeout: Request timeout in seconds.
+        pool_conn: Connection pool size.
+        pool_max_size: Maximum pool size.
+        max_retries: Maximum number of retry attempts.
+        retry_delay: Initial delay between retries in seconds.
+        max_retry_delay: Maximum delay between retries in seconds.
+    """
+
     req_timeout: int = Field(description="Request timeout in seconds")
     pool_conn: int = Field(description="Connection pool size")
     pool_max_size: int = Field(description="Maximum pool size")
@@ -21,6 +38,23 @@ class CrawlerConfig(BaseModel):
 
 
 class LLMConfig(BaseModel):
+    """Configuration for Large Language Model (LLM) settings.
+
+    This class defines parameters for different LLM providers (GigaChat, YandexGPT)
+    and general LLM settings for text completion.
+
+    Attributes:
+        giga_chat_client_id: GigaChat client ID.
+        giga_chat_client_secret: GigaChat client secret.
+        giga_chat_auth_key: GigaChat authentication key.
+        giga_chat_scope: GigaChat API scope.
+        yandex_gpt_folder_id: YandexGPT folder ID.
+        yandex_gpt_api_key: YandexGPT API key.
+        completion_model: Default completion model to use.
+        completion_temperature: Model temperature parameter.
+        completion_max_tokens: Maximum tokens for completion.
+    """
+
     # GigaChat settings
     giga_chat_client_id: str = Field(description="GigaChat client ID")
     giga_chat_client_secret: str = Field(description="GigaChat client secret")
@@ -38,6 +72,19 @@ class LLMConfig(BaseModel):
 
 
 class SQLAlchemyConfig(BaseModel):
+    """Configuration for SQLAlchemy database settings.
+
+    This class defines connection parameters and behavior settings
+    for the SQLAlchemy ORM.
+
+    Attributes:
+        url: Database connection URL.
+        echo: Enable SQL query logging.
+        autoflush: Enable autoflush.
+        autocommit: Enable autocommit.
+        expire_on_commit: Expire objects on commit.
+    """
+
     url: PostgresDsn = Field(description="Database connection URL")
     echo: bool = Field(description="Enable SQL query logging")
     autoflush: bool = Field(description="Enable autoflush")
@@ -46,6 +93,18 @@ class SQLAlchemyConfig(BaseModel):
 
 
 class Settings(BaseSettings):
+    """Main application settings class.
+
+    This class combines all configuration components and handles
+    loading settings from environment variables and .env files.
+
+    Attributes:
+        crawler: Configuration for web crawler settings.
+        llm: Configuration for Language Learning Model settings.
+        sqlalchemy: Configuration for SQLAlchemy database settings.
+        model_config: Pydantic configuration for settings behavior.
+    """
+
     crawler: CrawlerConfig = Field(default_factory=CrawlerConfig)
     llm: LLMConfig = Field(default_factory=LLMConfig)
     sqlalchemy: SQLAlchemyConfig = Field(default_factory=SQLAlchemyConfig)
@@ -61,3 +120,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+"""Global settings instance for the application."""
