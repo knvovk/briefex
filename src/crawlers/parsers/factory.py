@@ -18,7 +18,7 @@ class ParserFactory(ABC):
     def create(self, src: Source) -> Parser: ...
 
 
-class DefaultParserFactory(ParserFactory):
+class ParserFactoryImpl(ParserFactory):
 
     def __init__(self) -> None:
         super().__init__()
@@ -69,5 +69,5 @@ class DefaultParserFactory(ParserFactory):
         )
 
 
-def create_default_parser_factory() -> ParserFactory:
-    return DefaultParserFactory()
+def create_parser_factory() -> ParserFactory:
+    return ParserFactoryImpl()

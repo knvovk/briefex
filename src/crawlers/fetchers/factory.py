@@ -22,7 +22,7 @@ class FetcherFactory(ABC):
     def create(self, src_type: SourceType) -> Fetcher: ...
 
 
-class DefaultFetcherFactory(FetcherFactory):
+class FetcherFactoryImpl(FetcherFactory):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -75,5 +75,5 @@ class DefaultFetcherFactory(FetcherFactory):
         )
 
 
-def create_default_fetcher_factory(*args, **kwargs) -> FetcherFactory:
-    return DefaultFetcherFactory(*args, **kwargs)
+def create_fetcher_factory(*args, **kwargs) -> FetcherFactory:
+    return FetcherFactoryImpl(*args, **kwargs)

@@ -20,7 +20,7 @@ from .exceptions import (
     create_fetch_error,
     create_parse_error,
 )
-from .factory import CrawlerFactory, create_default_crawler_factory
+from .factory import CrawlerFactory, create_crawler_factory
 from .fetchers import *
 from .models import Post, Source, SourceType
 from .parsers import *

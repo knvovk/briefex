@@ -27,7 +27,7 @@ class CrawlContext:
         self.failed_drafts = 0
 
 
-class DefaultCrawler(Crawler):
+class CrawlerImpl(Crawler):
 
     @override
     def crawl(self, src: Source) -> list[Post]:

@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import override
 
 from .base import Crawler
-from .crawler import DefaultCrawler
+from .crawler import CrawlerImpl
 from .fetchers import FetcherFactory
 from .parsers import ParserFactory
 
@@ -23,11 +23,11 @@ class CrawlerFactory(ABC):
     ) -> Crawler: ...
 
 
-class DefaultCrawlerFactory(CrawlerFactory):
+class CrawlerFactoryImpl(CrawlerFactory):
 
     @property
     def default_crawler_cls(self) -> type:
-        return DefaultCrawler
+        return CrawlerImpl
 
     @override
     def create(
@@ -42,5 +42,5 @@ class DefaultCrawlerFactory(CrawlerFactory):
         return crawler
 
 
-def create_default_crawler_factory() -> CrawlerFactory:
-    return DefaultCrawlerFactory()
+def create_crawler_factory() -> CrawlerFactory:
+    return CrawlerFactoryImpl()

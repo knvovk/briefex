@@ -19,7 +19,7 @@ class StorageFactory(ABC):
     def create(self, model: ModelT) -> Storage: ...
 
 
-class DefaultStorageFactory(StorageFactory):
+class StorageFactoryImpl(StorageFactory):
 
     def __init__(self) -> None:
         super().__init__()
@@ -72,5 +72,5 @@ class DefaultStorageFactory(StorageFactory):
         )
 
 
-def create_default_storage_factory() -> StorageFactory:
-    return DefaultStorageFactory()
+def create_storage_factory() -> StorageFactory:
+    return StorageFactoryImpl()
