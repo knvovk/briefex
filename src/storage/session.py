@@ -62,7 +62,8 @@ def create_storage_session_factory(
 ) -> scoped_session:
     """Create a scoped session factory for database sessions.
 
-    This function creates and returns a SQLAlchemy scoped session factory configured with the given parameters.
+    This function creates and returns an SQLAlchemy scoped session factory
+    configured with the given parameters.
 
     Args:
         bind: The engine to bind the session to.

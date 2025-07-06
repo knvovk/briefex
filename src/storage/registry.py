@@ -56,8 +56,8 @@ class StorageRegistry(dict[type[Model], type[Storage]]):
         return [cls.__name__ for cls in self.values()]
 
 
-# Global registry instance for storing model-to-storage mappings
 storage_registry = StorageRegistry()
+"""Global registry for storing model-to-storage mappings."""
 
 
 def register(model: type[Model]) -> Callable[[type[Storage]], type[Storage]]:
@@ -77,6 +77,7 @@ def register(model: type[Model]) -> Callable[[type[Storage]], type[Storage]]:
         class UserStorage(Storage[User]):
             pass
     """
+
     def decorator(cls: type[Storage]) -> type[Storage]:
         """The actual decorator function.
 
