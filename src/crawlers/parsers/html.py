@@ -24,6 +24,23 @@ TIME_1970_01_01 = datetime(1970, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
 
 
 def create_soup(html_content: str, url: str = "unknown") -> BeautifulSoup:
+    """Create a BeautifulSoup object from HTML content.
+
+    This function creates a BeautifulSoup object from HTML content,
+    with error handling for empty content or parsing errors.
+
+    Args:
+        html_content: The HTML content to parse.
+        url: The URL of the content, used for error reporting.
+
+    Returns:
+        A BeautifulSoup object representing the parsed HTML.
+
+    Raises:
+        ParseContentError: If the HTML content is empty.
+        ParseStructureError: If a BeautifulSoup object cannot be created.
+        ParseError: For other parsing errors.
+    """
     if not html_content.strip():
         raise ParseContentError(
             url=url,
@@ -48,6 +65,23 @@ def create_soup(html_content: str, url: str = "unknown") -> BeautifulSoup:
 
 
 def find_required_tag(parent: Tag, name: str, class_: str, url: str = "unknown") -> Tag:
+    """Find a required tag in a parent element.
+
+    This function finds a tag with the specified name and class in a parent element,
+    with error handling for missing parent or tag.
+
+    Args:
+        parent: The parent element to search in.
+        name: The tag name to find.
+        class_: The class name to find.
+        url: The URL of the content, used for error reporting.
+
+    Returns:
+        The found tag.
+
+    Raises:
+        ParseStructureError: If the parent is None or the tag is not found.
+    """
     if not parent:
         raise ParseStructureError(
             url=url,
@@ -67,6 +101,22 @@ def find_required_tag(parent: Tag, name: str, class_: str, url: str = "unknown")
 
 
 def get_required_attribute(tag: Tag, attr_name: str, url: str = "unknown") -> str:
+    """Get a required attribute from a tag.
+
+    This function gets an attribute with the specified name from a tag,
+    with error handling for missing tag or attribute.
+
+    Args:
+        tag: The tag to get the attribute from.
+        attr_name: The name of the attribute to get.
+        url: The URL of the content, used for error reporting.
+
+    Returns:
+        The value of the attribute.
+
+    Raises:
+        ParseStructureError: If the tag is None or the attribute is not found.
+    """
     if not tag:
         raise ParseStructureError(
             url=url,
@@ -86,6 +136,16 @@ def get_required_attribute(tag: Tag, attr_name: str, url: str = "unknown") -> st
 
 
 def clean_text(text: str | None) -> str:
+    """Clean text by removing non-breaking spaces and normalizing whitespace.
+
+    This function removes non-breaking spaces and normalizes whitespace in text.
+
+    Args:
+        text: The text to clean, or None.
+
+    Returns:
+        The cleaned text, or an empty string if the input is None or empty.
+    """
     if not text:
         return ""
 
@@ -96,6 +156,19 @@ def clean_text(text: str | None) -> str:
 
 
 class Config(BaseModel):
+    """Configuration for HTML parsers.
+
+    This class defines the configuration parameters for HTML parsers,
+    including tag names, class names, and datetime format.
+
+    Attributes:
+        article_tag: The tag name for article elements.
+        article_cls: The class name for article elements.
+        card_tag: The tag name for card elements.
+        card_cls: The class name for card elements.
+        datetime_fmt: The format string for parsing dates.
+        encoding: The encoding to use for HTML content.
+    """
 
     model_config = ConfigDict(
         frozen=True,
@@ -112,14 +185,47 @@ class Config(BaseModel):
 
 
 class HTMLParser(Parser, ABC):
+    """Abstract base class for HTML parsers.
+
+    This class provides a framework for parsing HTML content from sources.
+    It handles common tasks like preparing the soup, finding and parsing
+    post-cards and articles, and error handling.
+
+    Subclasses must implement the abstract methods to provide source-specific
+    parsing logic.
+
+    Attributes:
+        _config: Configuration for the parser.
+        _domain: The domain of the source URL.
+    """
 
     def __init__(self, src: Source) -> None:
+        """Initialize a new HTMLParser.
+
+        Args:
+            src: The source to parse content for.
+        """
         super().__init__(src)
         self._config = self._get_config()
         self._domain = utils.domain(src.url)
 
     @override
     def parse_one(self, data: bytes) -> PostDraft:
+        """Parse a single post from HTML data.
+
+        This method prepares the soup, finds the post-article, and parses it.
+
+        Args:
+            data: The raw HTML content to parse, as bytes.
+
+        Returns:
+            A PostDraft containing the extracted post-information.
+
+        Raises:
+            ParseContentError: If the HTML content is empty or cannot be decoded.
+            ParseStructureError: If the article cannot be found.
+            ParseError: For other parsing errors.
+        """
         logger.info("Parsing single article for %s", self._src)
 
         try:
@@ -146,6 +252,22 @@ class HTMLParser(Parser, ABC):
 
     @override
     def parse_many(self, data: bytes) -> list[PostDraft]:
+        """Parse multiple posts from HTML data.
+
+        This method prepares the soup, finds post-cards, and parses each one.
+        If a card fails to parse, it is skipped and the error is logged.
+
+        Args:
+            data: The raw HTML content to parse, as bytes.
+
+        Returns:
+            A list of PostDraft objects containing the extracted post-information.
+
+        Raises:
+            ParseContentError: If the HTML content is empty or cannot be decoded.
+            ParseStructureError: If no post-cards can be found.
+            ParseError: For other parsing errors.
+        """
         logger.info("Parsing multiple articles for %s", self._src)
 
         try:
@@ -181,6 +303,20 @@ class HTMLParser(Parser, ABC):
             )
 
     def _prepare_soup(self, data: bytes) -> BeautifulSoup:
+        """Prepare a BeautifulSoup object from raw HTML data.
+
+        This method decodes the HTML content using the configured encoding
+        and creates a BeautifulSoup object.
+
+        Args:
+            data: The raw HTML content as bytes.
+
+        Returns:
+            A BeautifulSoup object representing the parsed HTML.
+
+        Raises:
+            ParseContentError: If the data is empty or cannot be decoded.
+        """
         if not data:
             raise ParseContentError(
                 url=self._domain,
@@ -200,26 +336,79 @@ class HTMLParser(Parser, ABC):
             )
 
     @abstractmethod
-    def _get_config(self) -> Config: ...
+    def _get_config(self) -> Config:
+        """Get the configuration for this parser.
+
+        Returns:
+            A Config object with the parser configuration.
+        """
+        ...
 
     @abstractmethod
-    def _find_post_cards(self, soup: BeautifulSoup) -> list[Tag]: ...
+    def _find_post_cards(self, soup: BeautifulSoup) -> list[Tag]:
+        """Find post-cards in the soup.
+
+        Args:
+            soup: The BeautifulSoup object to search in.
+
+        Returns:
+            A list of Tag objects representing post-cards.
+        """
+        ...
 
     @abstractmethod
-    def _parse_post_card(self, card: Tag) -> PostDraft: ...
+    def _parse_post_card(self, card: Tag) -> PostDraft:
+        """Parse a post-card into a PostDraft.
+
+        Args:
+            card: The Tag object representing a post-card.
+
+        Returns:
+            A PostDraft containing the extracted post-information.
+        """
+        ...
 
     @abstractmethod
-    def _find_post_article(self, soup: BeautifulSoup) -> Tag: ...
+    def _find_post_article(self, soup: BeautifulSoup) -> Tag:
+        """Find a post-article in the soup.
+
+        Args:
+            soup: The BeautifulSoup object to search in.
+
+        Returns:
+            A Tag object representing the post-article.
+        """
+        ...
 
     @abstractmethod
-    def _parse_post_article(self, article: Tag) -> PostDraft: ...
+    def _parse_post_article(self, article: Tag) -> PostDraft:
+        """Parse a post-article into a PostDraft.
+
+        Args:
+            article: The Tag object representing a post-article.
+
+        Returns:
+            A PostDraft containing the extracted post-information.
+        """
+        ...
 
 
 @register("rt_html")
 class RT(HTMLParser):
+    """Parser for RT (Russia Today) HTML content.
+
+    This parser is responsible for parsing content from the RT website.
+    It implements the abstract methods from HTMLParser to provide
+    RT-specific parsing logic.
+    """
 
     @override
     def _get_config(self) -> Config:
+        """Get the configuration for the RT parser.
+
+        Returns:
+            A Config object with RT-specific configuration.
+        """
         return Config(
             article_tag="div",
             article_cls="article_article-page",
@@ -230,10 +419,29 @@ class RT(HTMLParser):
 
     @override
     def _find_post_cards(self, soup: BeautifulSoup) -> list[Tag]:
+        """Find post-cards in the RT HTML soup.
+
+        Args:
+            soup: The BeautifulSoup object to search in.
+
+        Returns:
+            A list of Tag objects representing RT post-cards.
+        """
         return soup.find_all(self._config.card_tag, class_=self._config.card_cls)
 
     @override
     def _parse_post_card(self, card: Tag) -> PostDraft:
+        """Parse an RT post-card into a PostDraft.
+
+        This method extracts the title and URL from the card
+        and creates a PostDraft with these details.
+
+        Args:
+            card: The Tag object representing an RT post-card.
+
+        Returns:
+            A PostDraft containing the extracted post-information.
+        """
         title, relative_url = self._extract_post_details(card)
         absolute_url = urljoin(self._src.url, relative_url)
         post_id = utils.normalize_id(
@@ -244,16 +452,46 @@ class RT(HTMLParser):
 
     @override
     def _find_post_article(self, soup: BeautifulSoup) -> Tag:
+        """Find a post-article in the RT HTML soup.
+
+        Args:
+            soup: The BeautifulSoup object to search in.
+
+        Returns:
+            A Tag object representing the RT post-article.
+        """
         return soup.find(self._config.article_tag, class_=self._config.article_cls)
 
     @override
     def _parse_post_article(self, article: Tag) -> PostDraft:
+        """Parse an RT post-article into a PostDraft.
+
+        This method extracts the content and publication date from the article
+        and creates a PostDraft with these details.
+
+        Args:
+            article: The Tag object representing an RT post-article.
+
+        Returns:
+            A PostDraft containing the extracted post-information.
+        """
         content = self._extract_content(article)
         pub_date = self._extract_pub_date(article)
 
         return PostDraft(content=content, pub_date=pub_date)
 
     def _extract_post_details(self, card: Tag) -> tuple[str, str]:
+        """Extract title and URL from an RT post-card.
+
+        Args:
+            card: The Tag object representing an RT post-card.
+
+        Returns:
+            A tuple containing the post-title and relative URL.
+
+        Raises:
+            ParseContentError: If the title or URL is empty.
+        """
         heading_div = find_required_tag(card, "div", "card__heading", self._domain)
         title_link = find_required_tag(heading_div, "a", "link", self._domain)
 
@@ -276,6 +514,17 @@ class RT(HTMLParser):
         return title, relative_url
 
     def _extract_content(self, article: Tag) -> str:
+        """Extract content from an RT post-article.
+
+        This method finds the article text div and extracts the content
+        from paragraphs or the entire div if no paragraphs are found.
+
+        Args:
+            article: The Tag object representing an RT post-article.
+
+        Returns:
+            The extracted and cleaned content as a string.
+        """
         article_div = find_required_tag(
             article,
             "div",
@@ -292,6 +541,18 @@ class RT(HTMLParser):
         return clean_text(raw_text)
 
     def _extract_pub_date(self, article: Tag) -> datetime:
+        """Extract publication date from an RT post-article.
+
+        This method finds the time tag and extracts the datetime attribute.
+        If parsing fails, it returns a default date (1970-01-01).
+
+        Args:
+            article: The Tag object representing an RT post-article.
+
+        Returns:
+            The extracted publication date as a datetime object,
+            or a default date if parsing fails.
+        """
         try:
             time_tag = find_required_tag(article, "time", "date", self._domain)
             pub_date_str = get_required_attribute(time_tag, "datetime", self._domain)

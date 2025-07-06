@@ -9,14 +9,41 @@ logger = logging.getLogger(__name__)
 
 
 class RSSParser(Parser):
+    """Parser for RSS sources.
+
+    This parser is responsible for parsing content from RSS feeds.
+    Note: This is a placeholder implementation that raises an error,
+    as RSS parsing is not yet implemented.
+
+    Attributes:
+        _datetime_fmt: The format string for parsing dates in RSS feeds.
+    """
+
     _datetime_fmt: str = "%a, %d %b %Y %H:%M:%S %z"
 
     def __init__(self, *args, **kwargs) -> None:
+        """Initialize a new RSSParser.
+
+        Args:
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         logger.debug("RSSParser initialized (not implemented)")
 
     @override
     def parse_one(self, data: bytes) -> PostDraft:
+        """Parse a single post from RSS data.
+
+        Args:
+            data: The raw RSS content to parse, as bytes.
+
+        Returns:
+            A PostDraft containing the extracted post information.
+
+        Raises:
+            ParseError: Always raised as RSS parsing is not yet implemented.
+        """
         logger.info("Parsing single article for %s", self._src)
 
         error_message = (
@@ -29,6 +56,17 @@ class RSSParser(Parser):
 
     @override
     def parse_many(self, data: bytes) -> list[PostDraft]:
+        """Parse multiple posts from RSS data.
+
+        Args:
+            data: The raw RSS content to parse, as bytes.
+
+        Returns:
+            A list of PostDraft objects containing the extracted post information.
+
+        Raises:
+            ParseError: Always raised as RSS parsing is not yet implemented.
+        """
         logger.info("Parsing multiple articles for %s", self._src)
 
         error_message = (
