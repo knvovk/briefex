@@ -722,6 +722,21 @@ files = [
 ]
 
 [[package]]
+name = "gigachat"
+version = "0.1.40"
+description = "GigaChat. Python-library for GigaChain and LangChain"
+optional = false
+python-versions = "<4.0,>=3.8"
+files = [
+    {file = "gigachat-0.1.40-py3-none-any.whl", hash = "sha256:2ed3de56c8316822849c1872a44845b37b24cc28b528ad9c74aaf0c11e7e3442"},
+    {file = "gigachat-0.1.40.tar.gz", hash = "sha256:5ca2f4f0a0bb16303272ac5e4e2a98c962bca6b4f817967599596da32641a77a"},
+]
+
+[package.dependencies]
+httpx = "<1"
+pydantic = ">=1"
+
+[[package]]
 name = "googleapis-common-protos"
 version = "1.70.0"
 description = "Common protobufs used in Google APIs"
@@ -3381,4 +3396,4 @@ six = ">=1.17.0,<2"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.13"
-content-hash = "ed8e0c8a4efa8ae7c5adb15908e81c773c4f35c5ad8f7e3150f7e137ce40850c"
+content-hash = "efa1c9b502372a23b7633f621f34f4aca3be8d4f651cdefca3dbd7d1820f40d5"
