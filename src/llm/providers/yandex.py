@@ -92,7 +92,7 @@ class YandexGPTProvider(LLMProvider):
                     exc,
                 )
                 raise LLMAuthenticationError(
-                    client=self.__class__.__name__,
+                    provider=self.__class__.__name__,
                     reason=str(exc),
                 ) from exc
 
@@ -200,7 +200,7 @@ class YandexGPTProvider(LLMProvider):
                 "Response validation error: Empty or invalid response structure"
             )
             raise LLMParsingError(
-                client=self.__class__.__name__,
+                provider=self.__class__.__name__,
                 reason="Empty or invalid response structure",
                 raw_response=str(result),
             )
@@ -208,7 +208,7 @@ class YandexGPTProvider(LLMProvider):
         if result.status == AlternativeStatus.CONTENT_FILTER:
             logger.warning("Content filtered by model during response parsing")
             raise LLMContentFilterError(
-                client=self.__class__.__name__,
+                provider=self.__class__.__name__,
                 reason="Content filter",
             )
 
@@ -242,6 +242,7 @@ class YandexGPTProvider(LLMProvider):
                     content=result.alternatives[0].text,
                 ),
             )
+
         except Exception as exc:
             logger.error(
                 "Failed to parse %s response: %s",
@@ -249,7 +250,7 @@ class YandexGPTProvider(LLMProvider):
                 exc,
             )
             raise LLMParsingError(
-                client=self.__class__.__name__,
+                provider=self.__class__.__name__,
                 reason=f"Failed to extract data from response: {exc}",
                 raw_response=str(result),
             ) from exc
@@ -288,6 +289,6 @@ class YandexGPTProvider(LLMProvider):
             ) from exc
 
         raise LLMRequestError(
-            client=self.__class__.__name__,
+            provider=self.__class__.__name__,
             reason=str(exc),
         )
