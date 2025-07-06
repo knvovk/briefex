@@ -33,11 +33,29 @@ logger = logging.getLogger(__name__)
 
 
 def _message_to_dict(message: ChatCompletionMessage) -> dict[str, str]:
+    """Convert a ChatCompletionMessage to a dictionary format expected by Yandex API.
+
+    Args:
+        message: The chat completion message to convert.
+
+    Returns:
+        A dictionary with 'role' and 'text' keys.
+    """
     return {"role": message.role, "text": message.content}
 
 
 @register(["yandexgpt", "yandexgpt-lite"])
 class YandexGPTProvider(LLMProvider):
+    """Provider for Yandex GPT language models.
+
+    This class implements the LLMProvider interface for Yandex GPT models,
+    handling authentication, request formatting, and response parsing.
+
+    Attributes:
+        _folder_id: The Yandex Cloud folder ID.
+        _api_key: The Yandex Cloud API key.
+        _client: The Yandex Cloud ML client.
+    """
 
     def __init__(
         self,
@@ -45,6 +63,17 @@ class YandexGPTProvider(LLMProvider):
         yandex_gpt_api_key: str,
         **kwargs,
     ) -> None:
+        """Initialize the Yandex GPT provider.
+
+        Args:
+            yandex_gpt_folder_id: The Yandex Cloud folder ID.
+            yandex_gpt_api_key: The Yandex Cloud API key.
+            **kwargs: Additional configuration parameters.
+
+        Raises:
+            LLMAuthenticationError: If authentication fails.
+            LLMConfigurationError: If initialization fails for other reasons.
+        """
         super().__init__(**kwargs)
         try:
             self._folder_id = yandex_gpt_folder_id
@@ -74,6 +103,20 @@ class YandexGPTProvider(LLMProvider):
 
     @override
     def complete(self, request: ChatCompletionRequest) -> ChatCompletionResponse:
+        """Process a chat completion request and return a response.
+
+        This method configures the model, sends the request to the Yandex GPT API,
+        and processes the response.
+
+        Args:
+            request: The chat completion request containing messages and model information.
+
+        Returns:
+            A chat completion response from the language model.
+
+        Raises:
+            LLMException: If an error occurs during completion.
+        """
         try:
             configured_model = self._get_configured_model(request.model, request.params)
             messages = [_message_to_dict(msg) for msg in request.messages]
@@ -101,6 +144,18 @@ class YandexGPTProvider(LLMProvider):
         model: Model,
         params: ChatCompletionParams,
     ) -> BaseGPTModel:
+        """Get a configured model instance for the specified model and parameters.
+
+        Args:
+            model: The language model to configure.
+            params: The parameters to configure the model with.
+
+        Returns:
+            A configured model instance.
+
+        Raises:
+            LLMConfigurationError: If the model is not found or configuration fails.
+        """
         try:
             logger.debug(
                 "Configuring model: %s (temperature=%.2f, max_tokens=%d)",
@@ -131,6 +186,15 @@ class YandexGPTProvider(LLMProvider):
             ) from exc
 
     def _raise_for_status(self, result: GPTModelResult) -> None:
+        """Check the result status and raise appropriate exceptions if needed.
+
+        Args:
+            result: The result from the model run.
+
+        Raises:
+            LLMParsingError: If the result is empty or has an invalid structure.
+            LLMContentFilterError: If the content was filtered by the model.
+        """
         if not result or not hasattr(result, "status"):
             logger.error(
                 "Response validation error: Empty or invalid response structure"
@@ -153,6 +217,18 @@ class YandexGPTProvider(LLMProvider):
         model: Model,
         result: GPTModelResult,
     ) -> ChatCompletionResponse:
+        """Create a ChatCompletionResponse from the model result.
+
+        Args:
+            model: The language model that generated the result.
+            result: The result from the model run.
+
+        Returns:
+            A chat completion response.
+
+        Raises:
+            LLMParsingError: If the response cannot be parsed.
+        """
         try:
             return ChatCompletionResponse(
                 model=model,
@@ -179,6 +255,21 @@ class YandexGPTProvider(LLMProvider):
             ) from exc
 
     def _process_exception(self, exc: Exception) -> NoReturn:
+        """Process an exception and raise an appropriate LLM exception.
+
+        This method analyzes the exception message and raises a more specific
+        LLM exception based on the content.
+
+        Args:
+            exc: The exception to process.
+
+        Raises:
+            LLMConfigurationError: If the exception is related to folder ID mismatch.
+            LLMRequestError: For all other exceptions.
+
+        Returns:
+            This method never returns as it always raises an exception.
+        """
         err_msg = str(exc).lower()
 
         if (
