@@ -16,15 +16,12 @@ CONSTRAINT_RE: re.Pattern[str] = re.compile(
 )
 
 
-class DatabaseError(Exception):
-    default_message: str = "Database error"
+class StorageException(Exception):
 
-    def __init__(self, message: str | None = None, **details: Any) -> None:
-        message = message or self.default_message
+    def __init__(self, message: str, details: dict | None = None) -> None:
         super().__init__(message)
-
-        self.message: str = message
-        self.details: dict[str, Any] = details
+        self.message = message
+        self.details = details or {}
 
     def __repr__(self) -> str:
         if self.details:
@@ -35,142 +32,117 @@ class DatabaseError(Exception):
         return repr(self)
 
 
-class ConnectionError(DatabaseError):
-    default_message = "Error connecting to database"
+class StorageConfigurationError(StorageException):
+
+    def __init__(self, issue: str, component: str) -> None:
+        super().__init__(
+            message=f"Configuration error: {issue}",
+            details={
+                "issue": issue,
+                "component": component,
+            },
+        )
 
 
-class TransactionError(DatabaseError):
-    default_message = "Error starting database transaction"
+class StorageConnectionError(StorageException):
+
+    def __init__(self, details: dict | None = None) -> None:
+        super().__init__(
+            message="Error connecting to database",
+            details=details,
+        )
 
 
-class ModelNotFoundError(DatabaseError):
-    default_message = "Object not found"
+class StorageTransactionError(StorageException):
 
-    def __init__(
-        self,
-        message: str | None = None,
-        *,
-        name: str | None = None,
-        pk: str | None = None,
-        **details: Any,
-    ) -> None:
-        if name is not None:
-            details["name"] = name
-        if pk is not None:
-            details["pk"] = pk
-        super().__init__(message or self.default_message, **details)
+    def __init__(self, details: dict | None = None) -> None:
+        super().__init__(
+            message="Error starting database transaction",
+            details=details,
+        )
 
 
-class ValidationError(DatabaseError):
-    default_message = "Error validating data"
+class ModelNotFoundError(StorageException):
 
-    def __init__(
-        self,
-        message: str | None = None,
-        *,
-        field_errors: dict[str, str] | None = None,
-        **details: Any,
-    ) -> None:
-        if field_errors:
-            details["field_errors"] = ", ".join(
-                f"{k}: {v}" for k, v in field_errors.items()
-            )
-        super().__init__(message or self.default_message, **details)
+    def __init__(self, name: str, pk: str) -> None:
+        super().__init__(
+            message="Object not found",
+            details={
+                "name": name,
+                "pk": pk,
+            },
+        )
 
 
-class DuplicateError(DatabaseError):
-    default_message = "Duplicate value"
+class ValidationError(StorageException):
 
-    def __init__(
-        self,
-        message: str | None = None,
-        *,
-        field_name: str | None = None,
-        value: Any | None = None,
-        **details: Any,
-    ) -> None:
-        msg = message or self.default_message
-
-        if field_name:
-            msg += f" for field {field_name}"
-            details["field_name"] = field_name
-            if value is not None:
-                msg += f": {value}"
-                details["value"] = value
-
-        super().__init__(msg, **details)
+    def __init__(self, field_errors: dict[str, str] | None = None) -> None:
+        super().__init__(
+            message="Error validating data",
+            details={
+                "field_errors": (
+                    ", ".join(f"{k}: {v}" for k, v in field_errors.items())
+                    if field_errors
+                    else ""
+                ),
+            },
+        )
 
 
-class ConstraintViolationError(DatabaseError):
-    default_message = "Constraint violation"
+class DuplicateError(StorageException):
 
-    def __init__(
-        self,
-        message: str | None = None,
-        *,
-        constraint_name: str | None = None,
-        **details: Any,
-    ) -> None:
-        if constraint_name:
-            details["constraint_name"] = constraint_name
-        super().__init__(message or self.default_message, **details)
+    def __init__(self, field_name: str, value: Any) -> None:
+        super().__init__(
+            message="Duplicate value" + f": {value}" if value else "",
+            details={
+                "field_name": field_name,
+                "value": value,
+            },
+        )
 
 
-class QueryExecutionError(DatabaseError):
-    default_message = "Error executing query"
+class ConstraintViolationError(StorageException):
 
-    def __init__(
-        self,
-        message: str | None = None,
-        *,
-        query: str | None = None,
-        error_details: str | None = None,
-        **details: Any,
-    ) -> None:
-        if query:
-            details["query"] = query
-        if error_details:
-            details["error_details"] = error_details
-        super().__init__(message or self.default_message, **details)
+    def __init__(self, constraint_name: str) -> None:
+        super().__init__(
+            message="Constraint violation",
+            details={
+                "constraint_name": constraint_name,
+            },
+        )
 
 
-class StorageConfigurationError(DatabaseError):
-    default_message = "Configuration error"
+class QueryExecutionError(StorageException):
 
-    def __init__(
-        self,
-        message: str | None = None,
-        *,
-        issue: str | None = None,
-        component: str | None = None,
-        **details: Any,
-    ) -> None:
-        if issue:
-            details["issue"] = issue
-        if component:
-            details["component"] = component
-        super().__init__(message or self.default_message, **details)
+    def __init__(self, query: str | None = None, reason: str | None = None) -> None:
+        super().__init__(
+            message="Error executing query",
+            details={
+                "query": query,
+                "reason": reason,
+            },
+        )
 
 
-_SQLALCHEMY_ERROR_MAPPING: dict[str, type[DatabaseError]] = {
+_SQLALCHEMY_ERROR_MAPPING: dict[str, type[StorageException]] = {
     "IntegrityError": DuplicateError,
     "DataError": ValidationError,
-    "OperationalError": ConnectionError,
+    "OperationalError": StorageConnectionError,
     "ProgrammingError": QueryExecutionError,
 }
 
 
-def map_sqlalchemy_error(exc: Exception, **details) -> DatabaseError:
+def create_from_sa_error(exc: Exception, **details) -> StorageException:
     err_name = type(exc).__name__
-    exc_cls: type[DatabaseError] = _SQLALCHEMY_ERROR_MAPPING.get(
-        err_name, DatabaseError
+    exc_cls: type[StorageException] = _SQLALCHEMY_ERROR_MAPPING.get(
+        err_name, StorageException
     )
 
     details.setdefault("original_error", err_name)
     return exc_cls(str(exc), **details)
 
 
-def handle_integrity_err(exc: IntegrityError) -> NoReturn:
+def create_from_integrity_err(exc: IntegrityError) -> NoReturn:
     msg = str(exc.orig)
 
     if m := DUPLICATE_KEY_RE.search(msg):
@@ -181,4 +153,4 @@ def handle_integrity_err(exc: IntegrityError) -> NoReturn:
         constraint = m.group("constraint")
         raise ConstraintViolationError(constraint_name=constraint) from exc
 
-    raise map_sqlalchemy_error(exc) from exc  # fallback
+    raise create_from_sa_error(exc) from exc  # fallback

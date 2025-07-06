@@ -46,7 +46,8 @@ def create_storage_session_factory(
     expire_on_commit: bool,
 ) -> scoped_session:
     logger.debug(
-        "Initializing session factory (autoflush=%s, autocommit=%s, expire_on_commit=%s)",
+        "Initializing session factory "
+        "(autoflush=%s, autocommit=%s, expire_on_commit=%s)",
         autoflush,
         autocommit,
         expire_on_commit,

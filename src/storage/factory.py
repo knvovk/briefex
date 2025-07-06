@@ -9,14 +9,11 @@ from .registry import storage_registry
 
 logger = logging.getLogger(__name__)
 
-ModelT = type[Model]
-StorageT = type[Storage]
-
 
 class StorageFactory(ABC):
 
     @abstractmethod
-    def create(self, model: ModelT) -> Storage: ...
+    def create(self, model: type[Model]) -> Storage: ...
 
 
 class StorageFactoryImpl(StorageFactory):
@@ -26,12 +23,12 @@ class StorageFactoryImpl(StorageFactory):
         self._log_initialization()
 
     @override
-    def create(self, model: ModelT) -> Storage:
+    def create(self, model: type[Model]) -> Storage:
         logger.debug("Initializing storage for %s", model.__name__)
         cls = self._get_storage_class(model)
         return self._instantiate_storage(cls, model)
 
-    def _get_storage_class(self, model: ModelT) -> StorageT | None:
+    def _get_storage_class(self, model: type[Model]) -> type[Storage] | None:
         if model not in storage_registry:
             available_storages = storage_registry.get_storage_names()
             storages_str = (
@@ -45,7 +42,7 @@ class StorageFactoryImpl(StorageFactory):
 
         return storage_registry[model]
 
-    def _instantiate_storage(self, cls: StorageT, model: ModelT) -> Storage:
+    def _instantiate_storage(self, cls: type[Storage], model: type[Model]) -> Storage:
         try:
             storage = cls()
             logger.info("%s initialized for %s", cls.__name__, model.__name__)

@@ -7,18 +7,15 @@ from .models import Model
 
 logger = logging.getLogger(__name__)
 
-ModelT = type[Model]
-StorageT = type[Storage]
 
+class StorageRegistry(dict[type[Model], type[Storage]]):
 
-class StorageRegistry(dict[ModelT, StorageT]):
-
-    def register(self, model: ModelT, cls: StorageT) -> None:
+    def register(self, model: type[Model], cls: type[Storage]) -> None:
         self._validate_storage_class(cls)
         self[model] = cls
         logger.debug("%s registered for %s", cls.__name__, model.__name__)
 
-    def _validate_storage_class(self, cls: StorageT) -> None:
+    def _validate_storage_class(self, cls: type[Storage]) -> None:
         if not isinstance(cls, type) or not issubclass(cls, Storage):
             raise StorageConfigurationError(
                 issue=f"Class {cls.__name__} must be a subclass of Storage",
@@ -32,8 +29,8 @@ class StorageRegistry(dict[ModelT, StorageT]):
 storage_registry = StorageRegistry()
 
 
-def register(model: ModelT) -> Callable[[StorageT], StorageT]:
-    def decorator(cls: StorageT) -> StorageT:
+def register(model: type[Model]) -> Callable[[type[Storage]], type[Storage]]:
+    def decorator(cls: type[Storage]) -> type[Storage]:
         try:
             storage_registry.register(model, cls)
             return cls

@@ -6,7 +6,11 @@ from typing import Any, Callable, ParamSpec, TypeVar
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from .exceptions import ModelNotFoundError, handle_integrity_err, map_sqlalchemy_error
+from .exceptions import (
+    ModelNotFoundError,
+    create_from_integrity_err,
+    create_from_sa_error,
+)
 from .session import inject_session
 
 logger = logging.getLogger(__name__)
@@ -55,10 +59,10 @@ class Storage[T]:
             return operation()
         except IntegrityError as exc:
             logger.debug("IntegrityError caught: %s", exc, exc_info=True)
-            handle_integrity_err(exc)
+            create_from_integrity_err(exc)
         except Exception as exc:
             logger.error("Unexpected error: %s", exc, exc_info=True)
-            raise map_sqlalchemy_error(exc) from exc
+            raise create_from_sa_error(exc) from exc
 
     def _add_func(self, obj: T, session: Session) -> T:
         logger.debug("Adding %s object to session", self._model.__name__)
