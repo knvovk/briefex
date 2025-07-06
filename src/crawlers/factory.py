@@ -25,21 +25,13 @@ class CrawlerFactory(ABC):
 
 class CrawlerFactoryImpl(CrawlerFactory):
 
-    @property
-    def default_crawler_cls(self) -> type:
-        return CrawlerImpl
-
     @override
     def create(
         self,
         fetcher_factory: FetcherFactory,
         parser_factory: ParserFactory,
     ) -> Crawler:
-        crawler = self.default_crawler_cls(
-            fetcher_factory=fetcher_factory,
-            parser_factory=parser_factory,
-        )
-        return crawler
+        return CrawlerImpl(fetcher_factory, parser_factory)
 
 
 def create_crawler_factory() -> CrawlerFactory:

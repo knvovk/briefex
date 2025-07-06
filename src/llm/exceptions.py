@@ -18,7 +18,7 @@ class LLMConfigurationError(LLMException):
 
     def __init__(self, issue: str, component: str) -> None:
         super().__init__(
-            message="Configuration error",
+            message=f"Configuration error: {issue}",
             details={
                 "issue": issue,
                 "component": component,

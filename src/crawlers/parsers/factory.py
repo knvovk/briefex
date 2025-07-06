@@ -9,8 +9,6 @@ from .registry import parser_registry
 
 logger = logging.getLogger(__name__)
 
-ParserT = type[Parser]
-
 
 class ParserFactory(ABC):
 
@@ -30,7 +28,7 @@ class ParserFactoryImpl(ParserFactory):
         cls = self._get_parser_class(src.code_name)
         return self._instantiate_parser(cls, src)
 
-    def _get_parser_class(self, code_name: str) -> ParserT | None:
+    def _get_parser_class(self, code_name: str) -> type[Parser] | None:
         if code_name not in parser_registry:
             available_parsers = parser_registry.get_parser_names()
             parsers_str = ", ".join(available_parsers) if available_parsers else "None"
@@ -42,7 +40,7 @@ class ParserFactoryImpl(ParserFactory):
 
         return parser_registry[code_name]
 
-    def _instantiate_parser(self, cls: ParserT, src: Source) -> Parser:
+    def _instantiate_parser(self, cls: type[Parser], src: Source) -> Parser:
         try:
             parser = cls(src)
             logger.info("%s initialized for %s", cls.__name__, src)

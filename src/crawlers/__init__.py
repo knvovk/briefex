@@ -1,7 +1,7 @@
 from .base import Crawler
 from .exceptions import (
     CrawlerConfigurationError,
-    CrawlerError,
+    CrawlerException,
     CrawlerOperationError,
     FetchConnectionError,
     FetchError,

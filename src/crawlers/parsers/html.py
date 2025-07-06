@@ -36,8 +36,8 @@ def create_soup(html_content: str, url: str = "unknown") -> BeautifulSoup:
         if not soup:
             raise ParseStructureError(
                 url=url,
-                expected_structure="Valid HTML document",
-                found_structure="Unable to create BeautifulSoup object from HTML content",
+                actual_value="Unable to create BeautifulSoup object from HTML content",
+                expected_value="Valid HTML document",
             )
         return soup
 
@@ -51,16 +51,16 @@ def find_required_tag(parent: Tag, name: str, class_: str, url: str = "unknown")
     if not parent:
         raise ParseStructureError(
             url=url,
-            expected_structure=f"Parent element with selector '{name}'.'{class_}'",
-            found_structure="None",
+            actual_value="None",
+            expected_value=f"Parent element with selector '{name}'.'{class_}'",
         )
 
     tag = parent.find(name, class_=class_)
     if not tag:
         raise ParseStructureError(
             url=url,
-            expected_structure=f"Tag '{name}' with class '{class_}'",
-            found_structure="None",
+            actual_value="None",
+            expected_value=f"Tag '{name}' with class '{class_}'",
         )
 
     return tag
@@ -70,16 +70,16 @@ def get_required_attribute(tag: Tag, attr_name: str, url: str = "unknown") -> st
     if not tag:
         raise ParseStructureError(
             url=url,
-            expected_structure=f"Tag with attribute '{attr_name}'",
-            found_structure="None",
+            actual_value="None",
+            expected_value=f"Tag with attribute '{attr_name}'",
         )
 
     attr = tag.get(attr_name)
     if not attr:
         raise ParseStructureError(
             url=url,
-            expected_structure=f"Tag with attribute '{attr_name}'",
-            found_structure=f"Attribute '{attr_name}' is empty",
+            actual_value=f"Attribute '{attr_name}' is empty",
+            expected_value=f"Tag with attribute '{attr_name}'",
         )
 
     return attr
@@ -130,8 +130,8 @@ class HTMLParser(Parser, ABC):
                 selector = f"{self._config.article_tag}.{self._config.article_cls}"
                 raise ParseStructureError(
                     url=self._domain,
-                    expected_structure=f"Article with selector '{selector}'",
-                    found_structure="None",
+                    actual_value="None",
+                    expected_value=f"Article with selector '{selector}'",
                 )
 
             return self._parse_post_article(article)
@@ -156,8 +156,8 @@ class HTMLParser(Parser, ABC):
                 selector = f"{self._config.card_tag}.{self._config.card_cls}"
                 raise ParseStructureError(
                     url=self._domain,
-                    expected_structure=f"Post cards with selector '{selector}'",
-                    found_structure="None",
+                    actual_value="None",
+                    expected_value=f"Post cards with selector '{selector}'",
                 )
 
             posts: list[PostDraft] = []

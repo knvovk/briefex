@@ -48,8 +48,8 @@ class CrawlerImpl(Crawler):
             logger.error("Error crawling source %s: %s", src, exc, exc_info=True)
             raise CrawlerOperationError(
                 operation="crawl",
-                source_name=src.name,
-                error_details=str(exc),
+                src_name=src.name,
+                reason=str(exc),
             ) from exc
 
     @contextmanager
@@ -134,8 +134,8 @@ class CrawlerImpl(Crawler):
 
             raise CrawlerOperationError(
                 operation="fetch_posts_from_main_page",
-                source_name=src.name,
-                error_details=str(exc),
+                src_name=src.name,
+                reason=str(exc),
             ) from exc
 
     def _fetch_post_details_from_individual_page(
@@ -155,9 +155,9 @@ class CrawlerImpl(Crawler):
                 raise parsed_exc from exc
 
             raise PostProcessingError(
-                post_url=draft.url,
-                processing_stage="fetch_details",
-                error_details=str(exc),
+                url=draft.url,
+                stage="fetch_details",
+                reason=str(exc),
             ) from exc
 
     def _parse_exception(

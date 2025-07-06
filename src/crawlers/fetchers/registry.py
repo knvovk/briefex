@@ -7,17 +7,15 @@ from .base import Fetcher
 
 logger = logging.getLogger(__name__)
 
-FetcherT = type[Fetcher]
 
+class FetcherRegistry(dict[SourceType, type[Fetcher]]):
 
-class FetcherRegistry(dict[SourceType, FetcherT]):
-
-    def register(self, src_type: SourceType, cls: FetcherT) -> None:
+    def register(self, src_type: SourceType, cls: type[Fetcher]) -> None:
         self._validate_fetcher_class(cls)
         self[src_type] = cls
         logger.debug("%s registered for %s", cls.__name__, src_type)
 
-    def _validate_fetcher_class(self, cls: FetcherT) -> None:
+    def _validate_fetcher_class(self, cls: type[Fetcher]) -> None:
         if not isinstance(cls, type) or not issubclass(cls, Fetcher):
             raise CrawlerConfigurationError(
                 issue=f"Class {cls.__name__} must be a subclass of Fetcher",
@@ -31,8 +29,8 @@ class FetcherRegistry(dict[SourceType, FetcherT]):
 fetcher_registry = FetcherRegistry()
 
 
-def register(src_type: SourceType) -> Callable[[FetcherT], FetcherT]:
-    def decorator(cls: FetcherT) -> FetcherT:
+def register(src_type: SourceType) -> Callable[[type[Fetcher]], type[Fetcher]]:
+    def decorator(cls: type[Fetcher]) -> type[Fetcher]:
         try:
             fetcher_registry.register(src_type, cls)
             return cls

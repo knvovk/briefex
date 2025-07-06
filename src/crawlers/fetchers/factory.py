@@ -9,8 +9,6 @@ from .registry import fetcher_registry
 
 logger = logging.getLogger(__name__)
 
-FetcherT = type[Fetcher]
-
 
 class FetcherFactory(ABC):
 
@@ -34,7 +32,7 @@ class FetcherFactoryImpl(FetcherFactory):
         cls = self._get_fetcher_class(src_type)
         return self._instantiate_fetcher(cls, src_type)
 
-    def _get_fetcher_class(self, src_type: SourceType) -> FetcherT:
+    def _get_fetcher_class(self, src_type: SourceType) -> type[Fetcher]:
         if src_type not in fetcher_registry:
             available_fetchers = fetcher_registry.get_fetcher_names()
             fetchers_str = (
@@ -48,7 +46,7 @@ class FetcherFactoryImpl(FetcherFactory):
 
         return fetcher_registry[src_type]
 
-    def _instantiate_fetcher(self, cls: FetcherT, src_type: SourceType) -> Fetcher:
+    def _instantiate_fetcher(self, cls: type[Fetcher], src_type: SourceType) -> Fetcher:
         try:
             fetcher = cls(*self._args, **self._kwargs)
             logger.info("%s initialized for %s", cls.__name__, src_type)

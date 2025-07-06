@@ -6,17 +6,15 @@ from .base import Parser
 
 logger = logging.getLogger(__name__)
 
-ParserT = type[Parser]
 
+class ParserRegistry(dict[str, type[Parser]]):
 
-class ParserRegistry(dict[str, ParserT]):
-
-    def register(self, code_name: str, cls: ParserT) -> None:
+    def register(self, code_name: str, cls: type[Parser]) -> None:
         self._validate_parser_class(cls)
         self[code_name] = cls
         logger.debug("%s registered for %s", cls.__name__, code_name)
 
-    def _validate_parser_class(self, cls: ParserT) -> None:
+    def _validate_parser_class(self, cls: type[Parser]) -> None:
         if not isinstance(cls, type) or not issubclass(cls, Parser):
             raise CrawlerConfigurationError(
                 issue=f"Class {cls.__name__} must be a subclass of Parser",
@@ -30,8 +28,8 @@ class ParserRegistry(dict[str, ParserT]):
 parser_registry = ParserRegistry()
 
 
-def register(code_name: str) -> Callable[[ParserT], ParserT]:
-    def decorator(cls: ParserT) -> ParserT:
+def register(code_name: str) -> Callable[[type[Parser]], type[Parser]]:
+    def decorator(cls: type[Parser]) -> type[Parser]:
         try:
             parser_registry.register(code_name, cls)
             return cls
