@@ -19,21 +19,24 @@ class CrawlerFactory(ABC):
     All crawler factories must implement the create method.
     """
 
-    def __init__(self) -> None:
-        """Initialize a new CrawlerFactory."""
-        logger.info("CrawlerFactory initialized")
-
-    @abstractmethod
-    def create(
+    def __init__(
         self,
         fetcher_factory: FetcherFactory,
         parser_factory: ParserFactory,
-    ) -> Crawler:
-        """Create a new crawler.
+    ) -> None:
+        """Initialize a new CrawlerFactory.
 
         Args:
             fetcher_factory: The fetcher factory to use for creating fetchers.
             parser_factory: The parser factory to use for creating parsers.
+        """
+        self._fetcher_factory = fetcher_factory
+        self._parser_factory = parser_factory
+        logger.info("%s initialized", self.__class__.__name__)
+
+    @abstractmethod
+    def create(self) -> Crawler:
+        """Create a new crawler.
 
         Returns:
             A new crawler instance.
@@ -49,32 +52,31 @@ class CrawlerFactoryImpl(CrawlerFactory):
     """
 
     @override
-    def create(
-        self,
-        fetcher_factory: FetcherFactory,
-        parser_factory: ParserFactory,
-    ) -> Crawler:
+    def create(self) -> Crawler:
         """Create a new crawler.
 
         Creates a CrawlerImpl instance with the provided factories.
 
-        Args:
-            fetcher_factory: The fetcher factory to use for creating fetchers.
-            parser_factory: The parser factory to use for creating parsers.
-
         Returns:
             A new CrawlerImpl instance.
         """
-        return CrawlerImpl(fetcher_factory, parser_factory)
+        return CrawlerImpl(self._fetcher_factory, self._parser_factory)
 
 
-def create_crawler_factory() -> CrawlerFactory:
+def create_crawler_factory(
+    fetcher_factory: FetcherFactory,
+    parser_factory: ParserFactory,
+) -> CrawlerFactory:
     """Create a new crawler factory.
 
     This function is the main entry point for creating crawler factories.
     It creates and returns a CrawlerFactoryImpl instance.
 
+    Args:
+            fetcher_factory: The fetcher factory to use for creating fetchers.
+            parser_factory: The parser factory to use for creating parsers.
+
     Returns:
         A new CrawlerFactoryImpl instance.
     """
-    return CrawlerFactoryImpl()
+    return CrawlerFactoryImpl(fetcher_factory, parser_factory)
