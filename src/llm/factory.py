@@ -2,55 +2,56 @@ import logging
 from abc import ABC, abstractmethod
 from typing import override
 
-from .base import ChatCompletionManager
-from .completion import ChatCompletionManagerImpl
+from .base import ChatCompletionDispatcher
+from .completion import ChatCompletionDispatcherImpl
 from .providers import LLMProviderFactory
 
 logger = logging.getLogger(__name__)
 
 
-class ChatCompletionManagerFactory(ABC):
-    """Abstract factory for creating chat completion managers.
+class ChatCompletionDispatcherFactory(ABC):
+    """Abstract factory for creating chat completion dispatchers.
 
-    This class defines the interface for factories that create chat completion managers.
+    This class defines the interface for factories
+    that create chat completion dispatchers.
     """
 
     @abstractmethod
-    def create(self, provider_factory: LLMProviderFactory) -> ChatCompletionManager:
-        """Create a chat completion manager.
+    def create(self, provider_factory: LLMProviderFactory) -> ChatCompletionDispatcher:
+        """Create a chat completion dispatcher.
 
         Args:
             provider_factory: Factory for creating LLM providers.
 
         Returns:
-            A chat completion manager instance.
+            A chat completion dispatcher instance.
         """
         ...
 
 
-class ChatCompletionManagerFactoryImpl(ChatCompletionManagerFactory):
-    """Implementation of the ChatCompletionManagerFactory interface.
+class ChatCompletionDispatcherFactoryImpl(ChatCompletionDispatcherFactory):
+    """Implementation of the ChatCompletionDispatcherFactory interface.
 
-    This class creates instances of ChatCompletionManagerImpl.
+    This class creates instances of ChatCompletionDispatcherFactoryImpl.
     """
 
     @override
-    def create(self, provider_factory: LLMProviderFactory) -> ChatCompletionManager:
-        """Create a chat completion manager.
+    def create(self, provider_factory: LLMProviderFactory) -> ChatCompletionDispatcher:
+        """Create a chat completion dispatcher.
 
         Args:
             provider_factory: Factory for creating LLM providers.
 
         Returns:
-            A chat completion manager instance.
+            A chat completion dispatcher instance.
         """
-        return ChatCompletionManagerImpl(provider_factory)
+        return ChatCompletionDispatcherImpl(provider_factory)
 
 
-def create_chat_completion_manager_factory() -> ChatCompletionManagerFactory:
-    """Create a factory for chat completion managers.
+def create_chat_completion_dispatcher_factory() -> ChatCompletionDispatcherFactory:
+    """Create a factory for chat completion dispatchers.
 
     Returns:
-        A factory for creating chat completion managers.
+        A factory for creating chat completion dispatchers.
     """
-    return ChatCompletionManagerFactoryImpl()
+    return ChatCompletionDispatcherFactoryImpl()

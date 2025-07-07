@@ -7,10 +7,10 @@ from .providers import LLMProviderFactory
 logger = logging.getLogger(__name__)
 
 
-class ChatCompletionManager(ABC):
-    """Abstract base class for chat completion managers.
+class ChatCompletionDispatcher(ABC):
+    """Abstract base class for chat completion dispatchers.
 
-    This class defines the interface for chat completion managers that handle
+    This class defines the interface for chat completion dispatchers that handle
     requests to language models and return their responses.
 
     Attributes:
@@ -18,7 +18,7 @@ class ChatCompletionManager(ABC):
     """
 
     def __init__(self, provider_factory: LLMProviderFactory) -> None:
-        """Initialize the chat completion manager.
+        """Initialize the chat completion dispatcher.
 
         Args:
             provider_factory: Factory for creating LLM providers.

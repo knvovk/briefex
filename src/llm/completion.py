@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import override
 
-from .base import ChatCompletionManager
+from .base import ChatCompletionDispatcher
 from .exceptions import LLMCompletionError, LLMException
 from .models import ChatCompletionRequest, ChatCompletionResponse, Model
 from .providers import LLMProvider, LLMProviderFactory
@@ -11,10 +11,11 @@ from .providers import LLMProvider, LLMProviderFactory
 logger = logging.getLogger(__name__)
 
 
-class ChatCompletionManagerImpl(ChatCompletionManager):
-    """Implementation of the ChatCompletionManager interface.
+class ChatCompletionDispatcherImpl(ChatCompletionDispatcher):
+    """Implementation of the ChatCompletionDispatcher interface.
 
-    This class implements the singleton pattern and manages LLM providers for different models.
+    This class implements the singleton pattern and manages
+    LLM providers for different models.
     It caches providers to avoid recreating them for later requests.
 
     Attributes:
@@ -23,25 +24,25 @@ class ChatCompletionManagerImpl(ChatCompletionManager):
         _provider_cache: Cache of LLM providers indexed by a model.
     """
 
-    _instance: ChatCompletionManagerImpl | None = None
+    _instance: ChatCompletionDispatcherImpl | None = None
     _initialized: bool = False
 
-    def __new__(cls, *args, **kwargs) -> ChatCompletionManagerImpl:
-        """Create or return the singleton instance of ChatCompletionManagerImpl.
+    def __new__(cls, *args, **kwargs) -> ChatCompletionDispatcherImpl:
+        """Create or return the singleton instance of ChatCompletionDispatcherImpl.
 
         Args:
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
 
         Returns:
-            The singleton instance of ChatCompletionManagerImpl.
+            The singleton instance of ChatCompletionDispatcherImpl.
         """
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
     def __init__(self, provider_factory: LLMProviderFactory) -> None:
-        """Initialize the chat completion manager.
+        """Initialize the chat completion dispatcher.
 
         This method is only executed once due to the singleton pattern.
 
@@ -63,7 +64,7 @@ class ChatCompletionManagerImpl(ChatCompletionManager):
         requested model, and handles any exceptions that occur during processing.
 
         Args:
-            request: The chat completion request containing messages and model information.
+            request: The chat completion request containing messages and model info.
 
         Returns:
             A chat completion response from the language model.
