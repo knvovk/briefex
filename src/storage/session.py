@@ -49,7 +49,6 @@ def create_storage_engine(*, url: str, echo: bool) -> Engine:
         raise StorageConfigurationError(
             issue="Database engine initialization failed",
             component="engine_initialization",
-            original_error=str(exc),
         ) from exc
 
 
@@ -106,7 +105,6 @@ def create_storage_session_factory(
         raise StorageConfigurationError(
             issue="Session factory initialization failed",
             component="session_factory_initialization",
-            original_error=str(exc),
         ) from exc
 
 

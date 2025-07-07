@@ -3,13 +3,14 @@ from __future__ import annotations
 import logging
 from typing import Any, Callable, ParamSpec, TypeVar
 
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from .exceptions import (
     ModelNotFoundError,
+    QueryExecutionError,
+    StorageConnectionError,
     create_from_integrity_err,
-    create_from_sa_error,
 )
 from .session import inject_session
 
@@ -155,11 +156,18 @@ class Storage[T]:
         try:
             return operation()
         except IntegrityError as exc:
-            logger.debug("IntegrityError caught: %s", exc, exc_info=True)
+            logger.error("IntegrityError caught: %s", exc, exc_info=True)
             create_from_integrity_err(exc)
+        except OperationalError as exc:
+            logger.error("OperationalError caught: %s", exc, exc_info=True)
+            raise StorageConnectionError(
+                details={
+                    "reason": str(exc),
+                }
+            ) from exc
         except Exception as exc:
             logger.error("Unexpected error: %s", exc, exc_info=True)
-            raise create_from_sa_error(exc) from exc
+            raise QueryExecutionError(reason=str(exc)) from exc
 
     def _add_func(self, obj: T, session: Session) -> T:
         """Internal method to add a single object to the session.

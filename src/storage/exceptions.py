@@ -260,36 +260,6 @@ class QueryExecutionError(StorageException):
         )
 
 
-_SQLALCHEMY_ERROR_MAPPING: dict[str, type[StorageException]] = {
-    "IntegrityError": DuplicateError,
-    "DataError": ValidationError,
-    "OperationalError": StorageConnectionError,
-    "ProgrammingError": QueryExecutionError,
-}
-
-
-def create_from_sa_error(exc: Exception, **details) -> StorageException:
-    """Create a StorageException from an SQLAlchemy exception.
-
-    This function maps SQLAlchemy exception types to appropriate
-    StorageException subclasses.
-
-    Args:
-        exc: The original SQLAlchemy exception.
-        **details: Additional details to include in the exception.
-
-    Returns:
-        A StorageException or one of its subclasses.
-    """
-    err_name = type(exc).__name__
-    exc_cls: type[StorageException] = _SQLALCHEMY_ERROR_MAPPING.get(
-        err_name, StorageException
-    )
-
-    details.setdefault("original_error", err_name)
-    return exc_cls(str(exc), **details)
-
-
 def create_from_integrity_err(exc: IntegrityError) -> NoReturn:
     """Create and raise a specific exception from an IntegrityError.
 
