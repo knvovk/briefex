@@ -16,12 +16,18 @@ class ChatCompletionDispatcherFactory(ABC):
     that create chat completion dispatchers.
     """
 
-    @abstractmethod
-    def create(self, provider_factory: LLMProviderFactory) -> ChatCompletionDispatcher:
-        """Create a chat completion dispatcher.
+    def __init__(self, provider_factory: LLMProviderFactory) -> None:
+        """Initialize a new ChatCompletionDispatcherFactory.
 
         Args:
             provider_factory: Factory for creating LLM providers.
+        """
+        self._provider_factory = provider_factory
+        logger.info("%s initialized", self.__class__.__name__)
+
+    @abstractmethod
+    def create(self) -> ChatCompletionDispatcher:
+        """Create a chat completion dispatcher.
 
         Returns:
             A chat completion dispatcher instance.
@@ -36,7 +42,7 @@ class ChatCompletionDispatcherFactoryImpl(ChatCompletionDispatcherFactory):
     """
 
     @override
-    def create(self, provider_factory: LLMProviderFactory) -> ChatCompletionDispatcher:
+    def create(self) -> ChatCompletionDispatcher:
         """Create a chat completion dispatcher.
 
         Args:
@@ -45,13 +51,15 @@ class ChatCompletionDispatcherFactoryImpl(ChatCompletionDispatcherFactory):
         Returns:
             A chat completion dispatcher instance.
         """
-        return ChatCompletionDispatcherImpl(provider_factory)
+        return ChatCompletionDispatcherImpl(self._provider_factory)
 
 
-def create_chat_completion_dispatcher_factory() -> ChatCompletionDispatcherFactory:
+def create_chat_completion_dispatcher_factory(
+    provider_factory: LLMProviderFactory,
+) -> ChatCompletionDispatcherFactory:
     """Create a factory for chat completion dispatchers.
 
     Returns:
         A factory for creating chat completion dispatchers.
     """
-    return ChatCompletionDispatcherFactoryImpl()
+    return ChatCompletionDispatcherFactoryImpl(provider_factory)
