@@ -37,6 +37,28 @@ class CrawlerConfig(BaseModel):
     )
 
 
+class IntelligenceConfig(BaseModel):
+    """Configuration for intelligence settings.
+
+    This class defines parameters for various intelligence components.
+
+    Attributes:
+        summarization_prompt: Summarization prompt.
+        summarization_model: Summarization model.
+        summarization_max_tokens: Summarization max tokens.
+        summarization_temperature: Summarization temperature.
+        summarization_top_p: Summarization top p.
+        summarization_top_k: Summarization top k.
+    """
+
+    summarization_prompt: str = Field(description="Summarization prompt")
+    summarization_model: str = Field(description="Summarization model")
+    summarization_max_tokens: int = Field(description="Summarization max tokens")
+    summarization_temperature: float = Field(description="Summarization temperature")
+    summarization_top_p: float = Field(description="Summarization top p")
+    summarization_top_k: int = Field(description="Summarization top k")
+
+
 class LLMConfig(BaseModel):
     """Configuration for Large Language Model (LLM) settings.
 
@@ -52,10 +74,6 @@ class LLMConfig(BaseModel):
 
         yandex_gpt_folder_id: YandexGPT folder ID.
         yandex_gpt_api_key: YandexGPT API key.
-
-        completion_model: Default completion model to use.
-        completion_temperature: Model temperature parameter.
-        completion_max_tokens: Maximum tokens for completion.
     """
 
     # GigaChat settings
@@ -68,11 +86,6 @@ class LLMConfig(BaseModel):
     # YandexGPT settings
     yandex_gpt_folder_id: str = Field(description="YandexGPT folder ID")
     yandex_gpt_api_key: str = Field(description="YandexGPT API key")
-
-    # General LLM settings
-    completion_model: str = Field(description="Default completion model to use")
-    completion_temperature: float = Field(description="Model temperature parameter")
-    completion_max_tokens: int = Field(description="Maximum tokens for completion")
 
 
 class SQLAlchemyConfig(BaseModel):
@@ -110,6 +123,7 @@ class Settings(BaseSettings):
     """
 
     crawler: CrawlerConfig = Field(default_factory=CrawlerConfig)
+    intelligence: IntelligenceConfig = Field(default_factory=IntelligenceConfig)
     llm: LLMConfig = Field(default_factory=LLMConfig)
     sqlalchemy: SQLAlchemyConfig = Field(default_factory=SQLAlchemyConfig)
 
