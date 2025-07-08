@@ -1,10 +1,17 @@
 import logging
 from typing import override
 
+import httpx
 from gigachat import GigaChat
 from gigachat import models as sdk_models
 
-from ..exceptions import LLMCompletionError, LLMConfigurationError, LLMException
+from ..exceptions import (
+    LLMCompletionError,
+    LLMConfigurationError,
+    LLMContentFilterError,
+    LLMException,
+    LLMTimeoutError,
+)
 from ..models import (
     ChatCompletionMessage,
     ChatCompletionRequest,
@@ -19,7 +26,7 @@ from .registry import register
 logger = logging.getLogger(__name__)
 
 
-def _message_to_sdk_message(message: ChatCompletionMessage) -> sdk_models.Messages:
+def _msg_to_sdk_msg(message: ChatCompletionMessage) -> sdk_models.Messages:
     """Convert a ChatCompletionMessage to a format expected by GigaChat SDK.
 
     Args:
@@ -51,6 +58,7 @@ class GigaChatProvider(LLMProvider):
         gigachat_model: Model,
         gigachat_scope: str,
         gigachat_verify_ssl_certs: bool,
+        gigachat_timeout: int = 30,
         **kwargs,
     ) -> None:
         """Initialize the GigaChat provider.
@@ -70,6 +78,7 @@ class GigaChatProvider(LLMProvider):
         self._model = gigachat_model
         self._scope = gigachat_scope
         self._verify_ssl_certs = gigachat_verify_ssl_certs
+        self._timeout = gigachat_timeout
 
     @override
     def complete(self, request: ChatCompletionRequest) -> ChatCompletionResponse:
@@ -90,13 +99,9 @@ class GigaChatProvider(LLMProvider):
         """
         try:
             with self._get_configured_client() as client:
-                payload = self._get_configured_payload(request)
+                payload = self._get_configured_sdk_request(request)
 
-                logger.debug(
-                    "Sending request to model: %s (messages_count=%d)",
-                    request.model,
-                    len(payload.messages),
-                )
+                logger.info("Sending request to model: %s", request.model)
                 result = client.chat(payload)
                 self._raise_for_status(result)
 
@@ -106,8 +111,15 @@ class GigaChatProvider(LLMProvider):
         except LLMException:
             raise
 
+        except httpx.TimeoutException as exc:
+            logger.error("Timeout error during chat completion: %s", exc)
+            raise LLMTimeoutError(
+                provider=self.__class__.__name__,
+                timeout=self._timeout,
+            ) from exc
+
         except Exception as exc:
-            logger.error("Failed to complete chat: %s", exc)
+            logger.error("Unexpected error during chat completion: %s", exc)
             raise LLMCompletionError(
                 provider=self.__class__.__name__,
                 reason=str(exc),
@@ -128,6 +140,7 @@ class GigaChatProvider(LLMProvider):
                 scope=self._scope,
                 model=self._model,
                 verify_ssl_certs=self._verify_ssl_certs,
+                timeout=self._timeout,
             )
         except Exception as exc:
             raise LLMConfigurationError(
@@ -135,7 +148,7 @@ class GigaChatProvider(LLMProvider):
                 component=f"{self.__class__.__name__}_initialization",
             ) from exc
 
-    def _get_configured_payload(
+    def _get_configured_sdk_request(
         self,
         request: ChatCompletionRequest,
     ) -> sdk_models.Chat:
@@ -150,28 +163,30 @@ class GigaChatProvider(LLMProvider):
         Raises:
             LLMConfigurationError: If payload configuration fails.
         """
-        logger.debug(
-            "Configuring payload for model: %s (temperature=%.2f, max_tokens=%d)",
+        logger.info(
+            "Configuring request for model: %s "
+            "(temperature=%.2f, max_tokens=%d, stream=%s)",
             request.model,
             request.params.temperature,
             request.params.max_tokens,
+            request.params.stream,
         )
 
         try:
-            messages = [_message_to_sdk_message(msg) for msg in request.messages]
-            payload = sdk_models.Chat(
+            messages = [_msg_to_sdk_msg(msg) for msg in request.messages]
+            chat = sdk_models.Chat(
                 model=request.model,
                 messages=messages,
                 temperature=request.params.temperature,
                 max_tokens=request.params.max_tokens,
                 stream=request.params.stream,
             )
-            return payload
+            return chat
 
         except Exception as exc:
-            logger.error("Failed to configure payload: %s", exc)
+            logger.error("Unexpected error during request configuration: %s", exc)
             raise LLMConfigurationError(
-                issue=f"Failed to configure payload: {exc}",
+                issue=f"Failed to configure request payload: {exc}",
                 component=f"{self.__class__.__name__}_payload_configuration",
             ) from exc
 
@@ -185,7 +200,41 @@ class GigaChatProvider(LLMProvider):
             Currently this method only prints the result for debugging purposes.
             It should be extended to handle error cases appropriately.
         """
-        pass
+        try:
+            status = result.choices[0].finish_reason
+            content = result.choices[0].message.content
+            logger.info(
+                "Response received from model: %s (status=%s)",
+                result.model,
+                status,
+            )
+
+            if status == "blacklist":
+                logger.warning(
+                    "Response content was filtered by the model: %s",
+                    content[:64],
+                )
+                raise LLMContentFilterError(
+                    provider=self.__class__.__name__,
+                    reason="User content was filtered by the model",
+                )
+
+            elif status == "error":
+                logger.error("Response has an error status: %s", content[:64])
+                raise LLMCompletionError(
+                    provider=self.__class__.__name__,
+                    reason="Response has an error status",
+                )
+
+        except LLMException:
+            raise
+
+        except Exception as exc:
+            logger.error("Unexpected error during response status check: %s", exc)
+            raise LLMCompletionError(
+                provider=self.__class__.__name__,
+                reason=f"Failed to check response status: {exc}",
+            )
 
     def _create_completion_response(
         self,
@@ -219,12 +268,8 @@ class GigaChatProvider(LLMProvider):
             )
 
         except Exception as exc:
-            logger.error(
-                "Failed to parse %s response: %s",
-                self.__class__.__name__,
-                exc,
-            )
+            logger.error("Unexpected error during response parsing: %s", exc)
             raise LLMCompletionError(
                 provider=self.__class__.__name__,
-                reason=f"Failed to extract data from response: {exc}",
+                reason=f"Failed to parse response: {exc}",
             )
