@@ -62,18 +62,18 @@ class Config(BaseModel):
 
     Attributes:
         user_agents: List of user agent strings to use for requests.
-        request_timeout: Timeout in seconds for HTTP requests.
-        pool_connections: Number of connection objects to keep in the pool.
-        pool_maxsize: Maximum number of connections to keep in the pool.
+        req_timeout: Timeout in seconds for HTTP requests.
+        pool_conn: Number of connection objects to keep in the pool.
+        pool_max_size: Maximum number of connections to keep in the pool.
         max_retries: Maximum number of retry attempts for failed requests.
         retry_delay: Base delay in seconds between retry attempts.
         max_retry_delay: Maximum delay in seconds between retry attempts.
     """
 
     user_agents: list[str]
-    request_timeout: int
-    pool_connections: int
-    pool_maxsize: int
+    req_timeout: int
+    pool_conn: int
+    pool_max_size: int
     max_retries: int
     retry_delay: float
     max_retry_delay: float
@@ -97,9 +97,9 @@ def _build_config(kwargs: dict) -> Config:
     try:
         return Config(
             user_agents=kwargs.get("user_agents") or USER_AGENTS,
-            request_timeout=kwargs.get("request_timeout"),
-            pool_connections=kwargs.get("pool_connections"),
-            pool_maxsize=kwargs.get("pool_maxsize"),
+            req_timeout=kwargs.get("req_timeout"),
+            pool_conn=kwargs.get("pool_conn"),
+            pool_max_size=kwargs.get("pool_max_size"),
             max_retries=kwargs.get("max_retries"),
             retry_delay=kwargs.get("retry_delay"),
             max_retry_delay=kwargs.get("max_retry_delay"),
@@ -340,7 +340,7 @@ class HTMLFetcher(Fetcher):
         try:
             response = self._session.get(
                 url,
-                timeout=self._config.request_timeout,
+                timeout=self._config.req_timeout,
                 **kwargs,
             )
             self._validate_response(url, response)
@@ -350,9 +350,9 @@ class HTMLFetcher(Fetcher):
             logger.error(
                 "Request timeout for %s after %ds",
                 url,
-                self._config.request_timeout,
+                self._config.req_timeout,
             )
-            raise FetchTimeoutError(url, self._config.request_timeout) from exc
+            raise FetchTimeoutError(url, self._config.req_timeout) from exc
 
         except ConnectionError as exc:
             logger.error("Connection error for %s: %s", url, exc)
@@ -491,8 +491,8 @@ class HTMLFetcher(Fetcher):
             self._session = requests.Session()
 
             adapter = requests.adapters.HTTPAdapter(
-                pool_connections=self._config.pool_connections,
-                pool_maxsize=self._config.pool_maxsize,
+                pool_connections=self._config.pool_conn,
+                pool_maxsize=self._config.pool_max_size,
                 max_retries=0,  # We handle retries ourselves
             )
 
