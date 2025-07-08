@@ -69,6 +69,7 @@ class LLMConfig(BaseModel):
         gigachat_client_id: GigaChat client ID.
         gigachat_client_secret: GigaChat client secret.
         gigachat_auth_key: GigaChat authentication key.
+        gigachat_model: GigaChat default model.
         gigachat_scope: GigaChat API scope.
         gigachat_verify_ssl_certs: Enable SSL certificate verification.
 
@@ -80,6 +81,7 @@ class LLMConfig(BaseModel):
     gigachat_client_id: str = Field(description="GigaChat client ID")
     gigachat_client_secret: str = Field(description="GigaChat client secret")
     gigachat_auth_key: str = Field(description="GigaChat authentication key")
+    gigachat_model: str = Field(description="GigaChat default model")
     gigachat_scope: str = Field(description="GigaChat API scope")
     gigachat_verify_ssl_certs: bool = Field(description="GigaChat verify SSL certs")
 
