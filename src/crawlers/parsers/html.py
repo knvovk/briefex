@@ -8,10 +8,9 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup, Tag
 from pydantic import BaseModel, ConfigDict
 
-import utils
-
 from ..exceptions import ParseContentError, ParseError, ParseStructureError
 from ..models import PostDraft, Source
+from ..utils import get_domain_from_url, normalize_id
 from .base import Parser
 from .registry import register
 
@@ -207,7 +206,7 @@ class HTMLParser(Parser, ABC):
         """
         super().__init__(src)
         self._config = self._get_config()
-        self._domain = utils.domain(src.url)
+        self._domain = get_domain_from_url(src.url)
 
     @override
     def parse_one(self, data: bytes) -> PostDraft:
@@ -444,8 +443,9 @@ class RT(HTMLParser):
         """
         title, relative_url = self._extract_post_details(card)
         absolute_url = urljoin(self._src.url, relative_url)
-        post_id = utils.normalize_id(
-            relative_url.strip("/").split("/")[-1], self._src.code_name
+        post_id = normalize_id(
+            raw_id=relative_url.strip("/").split("/")[-1],
+            src_name=self._src.code_name,
         )
 
         return PostDraft(id=post_id, title=title, url=absolute_url)

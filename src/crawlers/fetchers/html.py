@@ -9,8 +9,6 @@ import requests.adapters
 from pydantic import BaseModel
 from requests.exceptions import ConnectionError, RequestException, Timeout
 
-import utils
-
 from ..exceptions import (
     CrawlerConfigurationError,
     FetchConnectionError,
@@ -22,6 +20,7 @@ from ..exceptions import (
     SourceNotFoundError,
 )
 from ..models import SourceType
+from ..utils import humanize_filesize
 from .base import Fetcher
 from .registry import register
 
@@ -449,7 +448,7 @@ class HTMLFetcher(Fetcher):
             response: The HTTP response to log information about.
         """
         try:
-            content_size = utils.pretty_print_size(len(response.content))
+            content_size = humanize_filesize(len(response.content))
             status = response.status_code
 
             if status < 300:
