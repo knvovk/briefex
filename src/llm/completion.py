@@ -73,34 +73,20 @@ class ChatCompletionDispatcherImpl(ChatCompletionDispatcher):
             LLMException: If an LLM-specific exception occurs.
             LLMCompletionError: If any other exception occurs during completion.
         """
-        logger.info(
-            "Processing completion request (model=%s, temperature=%.2f, max_tokens=%d)",
-            request.model,
-            request.params.temperature,
-            request.params.max_tokens,
-        )
+        logger.info("Processing chat completion request using %s", request.model)
 
         provider = None
         try:
             provider = self._get_provider(request.model)
             response = provider.complete(request)
-
-            logger.info(
-                "Completion succeeded (model=%s, status=%s, "
-                "prompt_tokens=%d, completion_tokens=%d, total_tokens=%d)",
-                response.model,
-                "None",  # TODO: response.status
-                response.usage.prompt_tokens,
-                response.usage.completion_tokens,
-                response.usage.total_tokens,
-            )
+            self._log_response(response)
             return response
 
         except LLMException:
             raise
 
         except Exception as exc:
-            logger.error("Failed to complete request: %s", exc, exc_info=True)
+            logger.error("Unexpected error occurred during completion: %s", exc)
             raise LLMCompletionError(
                 provider=provider.__class__.__name__ if provider else "None",
                 reason=str(exc),
@@ -122,3 +108,14 @@ class ChatCompletionDispatcherImpl(ChatCompletionDispatcher):
             self._provider_cache[model] = provider
 
         return self._provider_cache[model]
+
+    def _log_response(self, response: ChatCompletionResponse) -> None:
+        logger.info(
+            "Successfully completed request (model=%s, status=%s, "
+            "prompt_tokens=%d, completion_tokens=%d, total_tokens=%d)",
+            response.model,
+            "None",  # TODO: response.status
+            response.usage.prompt_tokens,
+            response.usage.completion_tokens,
+            response.usage.total_tokens,
+        )
