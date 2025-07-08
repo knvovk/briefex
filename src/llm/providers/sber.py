@@ -48,8 +48,8 @@ class GigaChatProvider(LLMProvider):
     def __init__(
         self,
         gigachat_credentials: str,
-        gigachat_scope: str,
         gigachat_model: Model,
+        gigachat_scope: str,
         gigachat_verify_ssl_certs: bool,
         **kwargs,
     ) -> None:
@@ -66,19 +66,10 @@ class GigaChatProvider(LLMProvider):
             LLMConfigurationError: If initialization fails.
         """
         super().__init__(**kwargs)
-        try:
-            self._client = GigaChat(
-                credentials=gigachat_credentials,
-                scope=gigachat_scope,
-                model=gigachat_model,
-                verify_ssl_certs=gigachat_verify_ssl_certs,
-            )
-
-        except Exception as exc:
-            raise LLMConfigurationError(
-                issue=f"Failed to initialize {self.__class__.__name__}: {exc}",
-                component=f"{self.__class__.__name__}_initialization",
-            ) from exc
+        self._credentials = gigachat_credentials
+        self._model = gigachat_model
+        self._scope = gigachat_scope
+        self._verify_ssl_certs = gigachat_verify_ssl_certs
 
     @override
     def complete(self, request: ChatCompletionRequest) -> ChatCompletionResponse:
@@ -98,7 +89,7 @@ class GigaChatProvider(LLMProvider):
             LLMCompletionError: If the chat completion fails.
         """
         try:
-            with self._client as client:
+            with self._get_configured_client() as client:
                 payload = self._get_configured_payload(request)
 
                 logger.debug(
@@ -120,6 +111,28 @@ class GigaChatProvider(LLMProvider):
             raise LLMCompletionError(
                 provider=self.__class__.__name__,
                 reason=str(exc),
+            ) from exc
+
+    def _get_configured_client(self) -> GigaChat:
+        """Get a configured GigaChat client instance.
+
+        Returns:
+            A configured GigaChat client instance.
+
+        Raises:
+            LLMConfigurationError: If the client cannot be initialized.
+        """
+        try:
+            return GigaChat(
+                credentials=self._credentials,
+                scope=self._scope,
+                model=self._model,
+                verify_ssl_certs=self._verify_ssl_certs,
+            )
+        except Exception as exc:
+            raise LLMConfigurationError(
+                issue=f"Failed to initialize {self.__class__.__name__}: {exc}",
+                component=f"{self.__class__.__name__}_initialization",
             ) from exc
 
     def _get_configured_payload(
@@ -172,7 +185,6 @@ class GigaChatProvider(LLMProvider):
             Currently this method only prints the result for debugging purposes.
             It should be extended to handle error cases appropriately.
         """
-        print(f"{result=}")
         pass
 
     def _create_completion_response(
