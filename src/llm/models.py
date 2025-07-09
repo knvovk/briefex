@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -101,4 +101,5 @@ class ChatCompletionResponse(BaseModel):
 
     model: Model
     usage: ChatCompletionUsage
+    status: Any
     message: ChatCompletionMessage
