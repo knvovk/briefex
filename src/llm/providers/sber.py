@@ -10,6 +10,7 @@ from ..exceptions import (
     LLMConfigurationError,
     LLMContentFilterError,
     LLMException,
+    LLMParsingError,
     LLMTimeoutError,
 )
 from ..models import (
@@ -201,26 +202,21 @@ class GigaChatProvider(LLMProvider):
             It should be extended to handle error cases appropriately.
         """
         try:
-            status = result.choices[0].finish_reason
-            content = result.choices[0].message.content
             logger.info(
                 "Response received from model: %s (status=%s)",
                 result.model,
-                status,
+                result.choices[0].finish_reason,
             )
 
-            if status == "blacklist":
-                logger.warning(
-                    "Response content was filtered by the model: %s",
-                    content[:64],
-                )
+            if result.choices[0].finish_reason == "blacklist":
+                logger.warning("Response content was filtered by the model")
                 raise LLMContentFilterError(
                     provider=self.__class__.__name__,
                     reason="User content was filtered by the model",
                 )
 
-            elif status == "error":
-                logger.error("Response has an error status: %s", content[:64])
+            elif result.choices[0].finish_reason == "error":
+                logger.error("Response has an error status")
                 raise LLMCompletionError(
                     provider=self.__class__.__name__,
                     reason="Response has an error status",
@@ -231,10 +227,10 @@ class GigaChatProvider(LLMProvider):
 
         except Exception as exc:
             logger.error("Unexpected error during response status check: %s", exc)
-            raise LLMCompletionError(
+            raise LLMParsingError(
                 provider=self.__class__.__name__,
                 reason=f"Failed to check response status: {exc}",
-            )
+            ) from exc
 
     def _create_completion_response(
         self,
@@ -261,6 +257,7 @@ class GigaChatProvider(LLMProvider):
                     completion_tokens=result.usage.completion_tokens,
                     total_tokens=result.usage.total_tokens,
                 ),
+                status=result.choices[0].finish_reason,
                 message=ChatCompletionMessage(
                     role=Role.ASSISTANT,
                     content=result.choices[0].message.content,
@@ -269,7 +266,7 @@ class GigaChatProvider(LLMProvider):
 
         except Exception as exc:
             logger.error("Unexpected error during response parsing: %s", exc)
-            raise LLMCompletionError(
+            raise LLMParsingError(
                 provider=self.__class__.__name__,
                 reason=f"Failed to parse response: {exc}",
-            )
+            ) from exc
