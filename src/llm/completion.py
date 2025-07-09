@@ -114,7 +114,7 @@ class ChatCompletionDispatcherImpl(ChatCompletionDispatcher):
             "Successfully completed request (model=%s, status=%s, "
             "prompt_tokens=%d, completion_tokens=%d, total_tokens=%d)",
             response.model,
-            "None",  # TODO: response.status
+            response.status,
             response.usage.prompt_tokens,
             response.usage.completion_tokens,
             response.usage.total_tokens,
