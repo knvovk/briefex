@@ -5,7 +5,7 @@ import enum
 import uuid
 
 from sqlalchemy import Enum as PgEnum
-from sqlalchemy import ForeignKey, String, func
+from sqlalchemy import ForeignKey, String, func, text
 from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -16,6 +16,7 @@ class Model(DeclarativeBase):
     This is an abstract base class that all model classes should inherit from.
     It provides common functionality for all models.
     """
+
     __abstract__ = True
 
 
@@ -28,6 +29,7 @@ class SourceType(str, enum.Enum):
         HTML: HTML web page source type.
         RSS: RSS feed source type.
     """
+
     HTML = "HTML"
     RSS = "RSS"
 
@@ -47,6 +49,7 @@ class Source(Model):
         updated_at: Timestamp when the source was last updated.
         posts: List of posts from this source.
     """
+
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -55,7 +58,7 @@ class Source(Model):
     name: Mapped[str] = mapped_column(String(256), nullable=False)
     code_name: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     type: Mapped[SourceType] = mapped_column(
-        PgEnum(SourceType, name="source_type_enum"),
+        PgEnum(SourceType, name="source_type_enum", native_enum=True),
         nullable=False,
         index=True,
     )
@@ -83,6 +86,38 @@ class Source(Model):
         return f"Source(code_name={self.code_name!r}, type={self.type!r})"
 
 
+class PostStatus(enum.IntEnum):
+    """Enumeration of post statuses.
+
+    This enum defines the possible statuses of a post.
+
+    Attributes:
+        PENDING_SUMMARY: Post is pending summary generation.
+        SUMMARY_READY: Summary generation is complete and ready for moderation.
+        SUMMARY_RETRY: Summary generation failed and needs to be retried.
+        SUMMARY_CENSORED: Summary generation was censored and should not be published.
+        MODERATION_APPROVED: Post has been approved for publication.
+        MODERATION_REJECTED: Post has been rejected for publication.
+        SCHEDULED: Post is scheduled for publication.
+        PUBLISHED: Post has been published.
+        ARCHIVED: Post has been archived and is no longer available.
+    """
+
+    PENDING_SUMMARY = 10
+
+    SUMMARY_READY = 20
+    SUMMARY_RETRY = 25
+    SUMMARY_CENSORED = 30
+
+    MODERATION_APPROVED = 40
+    MODERATION_REJECTED = 45
+
+    SCHEDULED = 50
+    PUBLISHED = 60
+
+    ARCHIVED = 90
+
+
 class Post(Model):
     """Model representing a content post.
 
@@ -100,6 +135,7 @@ class Post(Model):
         updated_at: Timestamp when the post was last updated.
         source: The source this post was collected from.
     """
+
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -107,11 +143,18 @@ class Post(Model):
     )
     title: Mapped[str] = mapped_column(String(512), nullable=False)
     content: Mapped[str] = mapped_column(String, nullable=False)
-    summary: Mapped[str] = mapped_column(String, nullable=False)
+    summary: Mapped[str] = mapped_column(String, nullable=True)
     canonical_url: Mapped[str] = mapped_column(
         String(2048),
         nullable=False,
         unique=True,
+    )
+    status: Mapped[PostStatus] = mapped_column(
+        PgEnum(PostStatus, name="post_status_enum", native_enum=True),
+        nullable=False,
+        index=True,
+        default=PostStatus.PENDING_SUMMARY,
+        server_default=text(f"'{PostStatus.PENDING_SUMMARY.name}'"),
     )
     source_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("sources.id", ondelete="CASCADE"),
