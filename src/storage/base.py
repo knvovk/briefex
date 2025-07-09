@@ -166,7 +166,7 @@ class Storage[T]:
                 }
             ) from exc
         except Exception as exc:
-            logger.error("Unexpected error: %s", exc, exc_info=True)
+            logger.error("Unexpected error during operation: %s", exc)
             raise QueryExecutionError(reason=str(exc)) from exc
 
     def _add_func(self, obj: T, session: Session) -> T:

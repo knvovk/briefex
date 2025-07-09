@@ -41,11 +41,7 @@ def create_storage_engine(*, url: str, echo: bool) -> Engine:
         return e
 
     except Exception as exc:
-        logger.critical(
-            "Unexpected error during engine initialization: %s",
-            exc,
-            exc_info=True,
-        )
+        logger.critical("Unexpected error during engine initialization: %s", exc)
         raise StorageConfigurationError(
             issue="Database engine initialization failed",
             component="engine_initialization",
@@ -100,7 +96,6 @@ def create_storage_session_factory(
         logger.critical(
             "Unexpected error during session factory initialization: %s",
             exc,
-            exc_info=True,
         )
         raise StorageConfigurationError(
             issue="Session factory initialization failed",
@@ -165,6 +160,7 @@ def inject_session(func: Callable[P, R]) -> Callable[P, R]:
         def get_user(user_id: int, *, session: Session) -> User:
             return session.query(User).get(user_id)
     """
+
     @wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs):
         if kwargs.get("session") is None:

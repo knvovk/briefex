@@ -110,7 +110,7 @@ class StorageFactoryImpl(StorageFactory):
             logger.info("%s initialized for %s", cls.__name__, model.__name__)
             return storage
         except Exception as exc:
-            logger.error("Failed to instantiate %s: %s", cls.__name__, exc)
+            logger.error("Unexpected error during storage instantiation: %s", exc)
             raise StorageConfigurationError(
                 issue=f"Storage instantiation failed for {cls.__name__}: {exc}",
                 component="storage_instantiation",

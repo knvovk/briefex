@@ -96,12 +96,7 @@ def register(model: type[Model]) -> Callable[[type[Storage]], type[Storage]]:
         except StorageConfigurationError:
             raise
         except Exception as exc:
-            logger.error(
-                "Failed to register storage %s for %s: %s",
-                cls.__name__,
-                model.__name__,
-                exc,
-            )
+            logger.error("Unexpected error during storage registration: %s", exc)
             raise StorageConfigurationError(
                 issue=f"Registration failed for {cls.__name__}: {exc}",
                 component="storage_registration",
