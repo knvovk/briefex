@@ -126,7 +126,11 @@ class Crawler(ABC):
                 lambda: self._fetcher_factory.create(src.type),
             )
         except Exception as exc:
-            logger.error("Error getting fetcher for source %s: %s", src.name, exc)
+            logger.error(
+                "Unexpected error getting fetcher for source %s: %s",
+                src.name,
+                exc,
+            )
             raise CrawlerConfigurationError(
                 issue=f"Error getting fetcher for source {src.name}: {exc}",
                 component="fetcher_selection",
@@ -150,7 +154,11 @@ class Crawler(ABC):
                 lambda: self._parser_factory.create(src),
             )
         except Exception as exc:
-            logger.error("Error getting parser for source %s: %s", src.name, exc)
+            logger.error(
+                "Unexpected error getting parser for source %s: %s",
+                src.name,
+                exc,
+            )
             raise CrawlerConfigurationError(
                 issue=f"Error getting parser for source {src.name}: {exc}",
                 component="parser_selection",

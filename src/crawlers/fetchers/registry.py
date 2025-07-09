@@ -92,12 +92,7 @@ def register(src_type: SourceType) -> Callable[[type[Fetcher]], type[Fetcher]]:
         except CrawlerConfigurationError:
             raise
         except Exception as exc:
-            logger.error(
-                "Failed to register fetcher %s for %s: %s",
-                cls.__name__,
-                src_type,
-                exc,
-            )
+            logger.error("Unexpected error during fetcher registration: %s", exc)
             raise CrawlerConfigurationError(
                 issue=f"Registration failed for {cls.__name__}: {exc}",
                 component="fetcher_registration",

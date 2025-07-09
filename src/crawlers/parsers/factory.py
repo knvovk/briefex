@@ -109,7 +109,7 @@ class ParserFactoryImpl(ParserFactory):
             logger.info("%s initialized for %s", cls.__name__, src)
             return parser
         except Exception as exc:
-            logger.error("Failed to instantiate %s: %s", cls.__name__, exc)
+            logger.error("Unexpected error during parser instantiation: %s", exc)
             raise CrawlerConfigurationError(
                 issue=f"Parser instantiation failed for {cls.__name__}: {exc}",
                 component="parser_instantiation",

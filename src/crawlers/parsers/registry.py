@@ -91,12 +91,7 @@ def register(code_name: str) -> Callable[[type[Parser]], type[Parser]]:
         except CrawlerConfigurationError:
             raise
         except Exception as exc:
-            logger.error(
-                "Failed to register parser %s for %s: %s",
-                cls.__name__,
-                code_name,
-                exc,
-            )
+            logger.error("Unexpected error during parser registration: %s", exc)
             raise CrawlerConfigurationError(
                 issue=f"Registration failed for {cls.__name__}: {exc}",
                 component="parser_registration",

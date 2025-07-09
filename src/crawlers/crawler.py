@@ -7,7 +7,6 @@ from .exceptions import (
     CrawlerOperationError,
     FetchError,
     ParseError,
-    PostProcessingError,
     create_fetch_error,
     create_parse_error,
 )
@@ -83,7 +82,7 @@ class CrawlerImpl(Crawler):
                 return posts
 
         except Exception as exc:
-            logger.error("Error crawling source %s: %s", src, exc, exc_info=True)
+            logger.error("Unexpected error during crawl: %s", exc)
             raise CrawlerOperationError(
                 operation="crawl",
                 src_name=src.name,
@@ -163,11 +162,10 @@ class CrawlerImpl(Crawler):
             except Exception as exc:
                 context.failed_drafts += 1
                 logger.error(
-                    "Unexpected error processing draft (%d/%d): %s",
+                    "Unexpected error during processing draft (%d/%d): %s",
                     idx,
                     context.total_drafts,
                     exc,
-                    exc_info=True,
                 )
 
         return posts
@@ -278,9 +276,9 @@ class CrawlerImpl(Crawler):
             if parsed_exc:
                 raise parsed_exc from exc
 
-            raise PostProcessingError(
-                url=draft.url,
-                stage="fetch_details",
+            raise CrawlerOperationError(
+                operation="fetch_post_details_from_individual_page",
+                src_name=src.name,
                 reason=str(exc),
             ) from exc
 

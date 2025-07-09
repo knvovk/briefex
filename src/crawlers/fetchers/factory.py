@@ -127,7 +127,7 @@ class FetcherFactoryImpl(FetcherFactory):
             logger.info("%s initialized for %s", cls.__name__, src_type)
             return fetcher
         except Exception as exc:
-            logger.error("Failed to instantiate %s: %s", cls.__name__, exc)
+            logger.error("Unexpected error during fetcher instantiation: %s", exc)
             raise CrawlerConfigurationError(
                 issue=f"Fetcher instantiation failed for {cls.__name__}: {exc}",
                 component="fetcher_instantiation",
