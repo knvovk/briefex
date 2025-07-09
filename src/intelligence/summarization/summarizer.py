@@ -11,8 +11,24 @@ logger = logging.getLogger(__name__)
 
 
 class SummarizerImpl(Summarizer):
+    """Implementation of the Summarizer interface.
+
+    This class provides a concrete implementation of the Summarizer
+    abstract base class, using LLM to generate text summaries.
+    """
 
     def __init__(self, *args, **kwargs) -> None:
+        """Initialize a new SummarizerImpl.
+
+        Args:
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments. Expected keys include:
+                summarization_prompt: The prompt to use for summarization.
+                summarization_model: The LLM model to use.
+                summarization_temperature: The temperature parameter for the model.
+                summarization_max_tokens: The maximum number of tokens in the response.
+                chat_completion_dispatcher: The dispatcher for chat completion requests.
+        """
         super().__init__(*args, **kwargs)
         self._prompt = kwargs.get("summarization_prompt")
         self._model = kwargs.get("summarization_model")
@@ -23,6 +39,21 @@ class SummarizerImpl(Summarizer):
 
     @override
     def summarize(self, text: str) -> str:
+        """Summarize the given text using LLM.
+
+        This method creates a chat completion request with the input text,
+        sends it to the LLM, and returns the generated summary.
+
+        Args:
+            text: The text to summarize.
+
+        Returns:
+            A concise summary of the input text.
+
+        Raises:
+            SummarizationError: If the text cannot be summarized due to LLM errors
+                or other unexpected issues.
+        """
         logger.info("Starting summarization for text (length=%d)", len(text))
 
         try:
@@ -43,6 +74,17 @@ class SummarizerImpl(Summarizer):
             raise SummarizationError(reason=str(exc)) from exc
 
     def _create_chat_completion_request(self, text: str) -> llm.ChatCompletionRequest:
+        """Create a chat completion request for summarization.
+
+        This method constructs a ChatCompletionRequest object with the appropriate
+        model, parameters, and messages for summarizing the given text.
+
+        Args:
+            text: The text to be summarized.
+
+        Returns:
+            A configured ChatCompletionRequest object ready to be sent to the LLM.
+        """
         return llm.ChatCompletionRequest(
             model=self._model,
             params=llm.ChatCompletionParams(
