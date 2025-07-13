@@ -63,8 +63,8 @@ class PostStorage(Storage[Post]):
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         query = (
             select(self._model)
-            .where(self._model.published_at >= cutoff)
-            .order_by(self._model.published_at.desc())
+            .where(self._model.created_at >= cutoff)
+            .order_by(self._model.created_at.desc())
         )
         objs = list(session.scalars(query).all())
 

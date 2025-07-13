@@ -83,7 +83,7 @@ class Source(Model):
         Returns:
             A string containing the code_name and type of the source.
         """
-        return f"Source(code_name={self.code_name!r}, type={self.type!r})"
+        return f"{self.name} (code_name={self.code_name}, type={self.type})"
 
 
 class PostStatus(enum.IntEnum):
