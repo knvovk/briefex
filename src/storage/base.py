@@ -195,7 +195,7 @@ class Storage[T]:
             The list of added objects.
         """
         logger.debug(
-            "Adding %d %s objects to session: %s",
+            "Adding %d %s objects to session",
             len(objs),
             self._model.__name__,
         )
