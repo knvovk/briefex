@@ -15,7 +15,7 @@ from config import Settings
 logger = logging.getLogger(__name__)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Container:
     """Container for dependency injection.
 
