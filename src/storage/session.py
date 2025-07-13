@@ -6,11 +6,13 @@ from typing import Callable, Generator, ParamSpec, TypeVar
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, scoped_session, sessionmaker
 
-from config import settings
+import config
 
 from .exceptions import StorageConfigurationError
 
 logger = logging.getLogger(__name__)
+
+settings = config.load_settings()
 
 P = ParamSpec("P")
 R = TypeVar("R")

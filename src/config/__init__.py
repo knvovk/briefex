@@ -1,1 +1,1 @@
-from .config import Settings, settings
+from .config import Settings, load_settings

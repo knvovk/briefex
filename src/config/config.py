@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import lru_cache
 from pathlib import Path
 
 from pydantic import BaseModel, Field, PostgresDsn
@@ -35,6 +36,7 @@ class CrawlerConfig(BaseModel):
     max_retry_delay: float = Field(
         description="Maximum delay between retries in seconds"
     )
+    recent_posts_days: int = Field(description="Recent posts days")
 
 
 class IntelligenceConfig(BaseModel):
@@ -139,5 +141,13 @@ class Settings(BaseSettings):
     )
 
 
-settings = Settings()
-"""Global settings instance for the application."""
+@lru_cache(maxsize=1)
+def load_settings() -> Settings:
+    """Load application settings from environment variables and .env file.
+
+    This function initializes the global settings instance and returns it.
+
+    Returns:
+        Settings: The initialized settings instance.
+    """
+    return Settings()
