@@ -184,4 +184,12 @@ class Post(Model):
         Returns:
             A string containing the title and source of the post.
         """
-        return f"Post(title={self.title!r}, source={self.source!r})"
+        return f"Post(id={self.id})"
+
+    def __str__(self) -> str:
+        """Return a string representation of the Post object.
+
+        Returns:
+            A string containing the title and source of the post.
+        """
+        return repr(self)
