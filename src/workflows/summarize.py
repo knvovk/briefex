@@ -11,9 +11,25 @@ logger = logging.getLogger(__name__)
 
 
 class SummarizeWorkflow(Workflow):
+    """Workflow for generating summaries for stored posts.
+
+    The workflow retrieves posts that require summarization, generates
+    summaries using the :class:`intelligence.summarization.Summarizer`, and
+    updates the stored posts with the results.
+    """
 
     @override
     def run(self) -> None:
+        """Execute the summarization workflow.
+
+        The workflow performs the following steps:
+        1. Retrieves posts pending summarization
+        2. Generates summaries for each post
+        3. Updates posts in storage with the generated summaries
+
+        Raises:
+            Exception: If any step of the workflow fails.
+        """
         try:
             logger.info("SummarizeWorkflow started")
             posts = self._get_stored_posts()
@@ -25,6 +41,15 @@ class SummarizeWorkflow(Workflow):
             raise
 
     def _get_stored_posts(self) -> list[storage.Post]:
+        """Retrieve posts that require summarization.
+
+        Returns:
+            A list of posts with status :pydata:`storage.PostStatus.PENDING_SUMMARY`
+            or :pydata:`storage.PostStatus.SUMMARY_RETRY`.
+
+        Raises:
+            Exception: If retrieving posts from storage fails.
+        """
         logger.info("[1/3] Retrieving stored posts for summarization")
         try:
             posts = []
@@ -46,6 +71,15 @@ class SummarizeWorkflow(Workflow):
         self,
         posts: list[storage.Post],
     ) -> dict[uuid.UUID, dict[str, object]]:
+        """Generate summaries for the provided posts.
+
+        Args:
+            posts: List of posts to summarize.
+
+        Returns:
+            Mapping of post IDs to update data containing the new status and,
+            when successful, the generated summary.
+        """
         logger.info("[2/3] Starting summarization for %d posts", len(posts))
         results: dict[uuid.UUID, dict[str, object]] = {}
 
@@ -87,6 +121,12 @@ class SummarizeWorkflow(Workflow):
         return results
 
     def _update_stored_posts(self, results: dict[uuid.UUID, dict[str, object]]) -> None:
+        """Update stored posts with summarization results.
+
+        Args:
+            results: Mapping of post IDs to the data that should be updated in
+                storage.
+        """
         logger.info("[3/3] Updating stored posts for summarization")
         for post_id, post_data in results.items():
             try:
@@ -105,6 +145,15 @@ class SummarizeWorkflow(Workflow):
         self,
         exc: intelligence.IntelligenceException,
     ) -> storage.PostStatus:
+        """Determine post status based on summarization error.
+
+        Args:
+            exc: Exception raised during summarization.
+
+        Returns:
+            Appropriate :class:`storage.PostStatus` reflecting whether the post
+            should be retried or marked as censored.
+        """
         reason = str(exc.details.get("reason", exc.message)).lower()
         if "filter" in reason or "censor" in reason:
             return storage.PostStatus.SUMMARY_CENSORED
