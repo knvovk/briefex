@@ -4,7 +4,7 @@ from typing import Any, NoReturn
 from sqlalchemy.exc import IntegrityError
 
 """
-Regular expression pattern to extract field name and value 
+Regular expression pattern to extract field name and value
 from duplicate key error messages.
 """
 DUPLICATE_KEY_RE: re.Pattern[str] = re.compile(
@@ -15,7 +15,7 @@ DUPLICATE_KEY_RE: re.Pattern[str] = re.compile(
 )
 
 """
-Regular expression pattern to extract constraint name 
+Regular expression pattern to extract constraint name
 from constraint violation error messages.
 """
 CONSTRAINT_RE: re.Pattern[str] = re.compile(
@@ -284,4 +284,4 @@ def create_from_integrity_err(exc: IntegrityError) -> NoReturn:
         constraint = m.group("constraint")
         raise ConstraintViolationError(constraint_name=constraint) from exc
 
-    raise create_from_sa_error(exc) from exc  # fallback
+    raise StorageException(msg) from exc  # fallback
