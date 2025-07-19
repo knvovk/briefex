@@ -1,0 +1,27 @@
+name: lint
+
+on: push
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'poetry'
+
+      - uses: abatilo/actions-poetry@v3
+
+      - name: install dependencies
+        run: poetry install --with dev --no-interaction --no-root
+
+      - uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --all-files
