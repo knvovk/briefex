@@ -4,7 +4,7 @@ services:
     container_name: briefex_db
     restart: always
     env_file:
-      - src/config/.env
+      - src/briefex/config/.env
     ports:
       - "5434:5432"
     volumes:

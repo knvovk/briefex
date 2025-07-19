@@ -11,14 +11,14 @@ project_root = Path(__file__).resolve().parents[1]
 src_root = project_root / "src"
 sys.path.append(src_root.as_posix())
 
-from src.config import settings
-from src.storage import models
+from briefex.config import load_settings
+from briefex.storage import models
 
 config = context.config
 if config.config_file_name:
     fileConfig(config.config_file_name)
 
-config.set_main_option("sqlalchemy.url", str(settings.sqlalchemy.url))
+config.set_main_option("sqlalchemy.url", str(load_settings().sqlalchemy.url))
 
 target_metadata = models.Model.metadata
 

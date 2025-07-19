@@ -19,9 +19,9 @@ env/
 ENV/
 
 # Configuration
-src/config/*.env
-src/config/*.toml
-src/config/*.ini
+src/briefex/config/*.env
+src/briefex/config/*.toml
+src/briefex/config/*.ini
 
 # IDE
 .idea/
