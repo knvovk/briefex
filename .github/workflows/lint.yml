@@ -1,4 +1,4 @@
-name: lint
+name: Lint
 
 on: push
 
@@ -12,6 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Poetry
+        run: pipx install poetry==1.8.2
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
@@ -19,7 +22,7 @@ jobs:
 
       - uses: abatilo/actions-poetry@v3
 
-      - name: install dependencies
+      - name: Install deps
         run: poetry install --with dev --no-interaction --no-root
 
       - uses: pre-commit/action@v3.0.1
