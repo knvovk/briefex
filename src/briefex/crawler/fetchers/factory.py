@@ -12,9 +12,22 @@ _log = logging.getLogger(__name__)
 
 
 class DefaultFetcherFactory(FetcherFactory):
+    """Factory that selects and instantiates fetchers from the registry."""
 
     @override
     def create(self, src_type: SourceType) -> Fetcher:
+        """Instantiate a Fetcher for the given source type.
+
+        Args:
+            src_type: Source type for which to retrieve a fetcher.
+
+        Returns:
+            A Fetcher instance corresponding to the provided source type.
+
+        Raises:
+            CrawlerConfigurationError: If no fetcher is registered for src_type
+                or if instantiation fails.
+        """
         _log.debug("Initializing fetcher for %s", src_type)
         if src_type not in fetcher_registry:
             raise CrawlerConfigurationError(

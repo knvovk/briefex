@@ -11,6 +11,7 @@ _log = logging.getLogger(__name__)
 
 @register("RSS")
 class RSSFetcher(Fetcher):
+    """Fetcher stub for RSS feeds."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -18,9 +19,11 @@ class RSSFetcher(Fetcher):
 
     @override
     def fetch(self, url: str, **kwargs: Any) -> bytes:
+        """Attempt to fetch RSS content (stub returns empty bytes)."""
         _log.warning("%s not implemented", self.__class__.__name__)
         return b""
 
     @override
     def close(self) -> None:
+        """Close the RSSFetcher (stub, no resources to release)."""
         _log.warning("%s not implemented", self.__class__.__name__)

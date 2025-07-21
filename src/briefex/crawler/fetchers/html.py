@@ -48,6 +48,7 @@ HTTP_STATUS_FORCE_LIST = [
 
 @register("HTML")
 class HTMLFetcher(Fetcher):
+    """Fetcher for HTML content with retry and per-host session management."""
 
     def __init__(
         self,
@@ -82,6 +83,18 @@ class HTMLFetcher(Fetcher):
 
     @override
     def fetch(self, url: str, **kwargs: Any) -> bytes:
+        """Fetch HTML bytes from the given URL, retrying on transient errors.
+
+        Args:
+            url: URL to retrieve.
+        Returns:
+            Response body as raw bytes.
+        Raises:
+            FetchTimeoutError: on timeout.
+            FetchConnectionError: on connection failure.
+            FetchHttpError: on HTTP status error.
+            FetchError: on other fetch failures after retries.
+        """
         _log.info("Fetching HTML content from %s", url)
         utils.validate_url(url)
 
@@ -130,6 +143,7 @@ class HTMLFetcher(Fetcher):
 
     @override
     def close(self) -> None:
+        """Close all active HTTP sessions."""
         for session in self._sessions_for_netloc.values():
             if session is not None:
                 session.close()

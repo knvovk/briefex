@@ -1,11 +1,24 @@
 from __future__ import annotations
 
+import logging
 import urllib.parse
 
 from briefex.crawler.exceptions import InvalidSourceError
 
+_log = logging.getLogger(__name__)
+
 
 def validate_url(url: str) -> None:
+    """Validate that a URL is non-empty, uses HTTP/HTTPS,
+        and contains no invalid whitespace.
+
+    Args:
+        url: URL string to validate.
+
+    Raises:
+        InvalidSourceError: If the URL is empty, has a non-HTTP/HTTPS scheme,
+            lacks a domain, or contains whitespace characters.
+    """
     if not url or not url.strip():
         raise InvalidSourceError(issue="URL cannot be empty")
 
