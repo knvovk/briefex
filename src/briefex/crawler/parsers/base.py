@@ -4,7 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
-from ..models import PostDraft, Source
+from briefex.crawler.models import PostDraft, Source
 
 _log = logging.getLogger(__name__)
 

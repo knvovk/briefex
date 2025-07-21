@@ -12,6 +12,20 @@ class Source(BaseModel):
     code: str
     type: SourceType
     url: SourceCode
+    encoding: str
+    article_tag: str
+    article_cls: str
+    post_card_tag: str
+    post_card_cls: str
+    datetime_fmt: str
+
+    @property
+    def article_selector(self) -> str:
+        return f"{self.article_tag}.{self.article_cls}"
+
+    @property
+    def card_selector(self) -> str:
+        return f"{self.card_tag}.{self.card_cls}"
 
 
 class Post(BaseModel):

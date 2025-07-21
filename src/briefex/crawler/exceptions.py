@@ -102,7 +102,7 @@ class ParseError(CrawlerException):
     pass
 
 
-class ParseContentError(CrawlerException):
+class ParseContentError(ParseError):
 
     def __init__(self, issue: str, src_url: str) -> None:
         super().__init__(
@@ -114,7 +114,7 @@ class ParseContentError(CrawlerException):
         )
 
 
-class ParseStructureError(CrawlerException):
+class ParseStructureError(ParseError):
     def __init__(self, issue: str, src_url: str) -> None:
         super().__init__(
             message=f"Error parsing structure for URL: {src_url}",
