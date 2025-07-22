@@ -1,10 +1,12 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Literal
 
 from pydantic import BaseModel
 
 SourceType = Literal["HTML", "RSS"]
 type SourceCode = str
+
+TIME_1970_01_01 = datetime(1970, 1, 1, 0, 0, 0, tzinfo=UTC)
 
 
 class Source(BaseModel):
