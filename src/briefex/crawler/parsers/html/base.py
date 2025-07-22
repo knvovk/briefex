@@ -11,7 +11,7 @@ from briefex.crawler.exceptions import (
     ParseError,
     ParseStructureError,
 )
-from briefex.crawler.models import PostDraft, Source
+from briefex.crawler.models import PostDraft
 from briefex.crawler.parsers.base import Parser
 
 _log = logging.getLogger(__name__)
@@ -21,11 +21,10 @@ class HTMLParser(Parser, ABC):
     """Base parser for extracting one or more posts from HTML content."""
 
     @override
-    def parse(self, src: Source, data: bytes) -> PostDraft:
+    def parse(self, data: bytes) -> PostDraft:
         """Parse HTML bytes to a single PostDraft.
 
         Args:
-            src: Source configuration with selectors and encoding.
             data: Raw HTML bytes to parse.
 
         Returns:
@@ -36,16 +35,17 @@ class HTMLParser(Parser, ABC):
             ParseContentError: If the HTML content is empty or invalid.
             ParseError: On unexpected parsing errors.
         """
-        _log.info("Parsing single article for %s", src)
+        _log.info("Parsing single article for %s", self._src)
 
         try:
-            soup = self._get_soup(src, data)
+            soup = self._get_soup(data)
 
             article = self._find_post_article(soup)
             if not article:
+                selector = self._src.article_selector
                 raise ParseStructureError(
-                    issue=f"No article found with selector '{src.article_selector}'",
-                    src_url=src.url,
+                    issue=f"No article found with selector '{selector}'",
+                    src_url=self._src.url,
                 )
 
             return self._parse_post_article(article)
@@ -57,11 +57,11 @@ class HTMLParser(Parser, ABC):
             _log.error("Unexpected error during parsing: %s", exc)
             raise ParseError(
                 message=f"Unexpected error during parsing: {exc}",
-                details={"src": src},
+                details={"src": self._src},
             ) from exc
 
     @override
-    def parse_many(self, src: Source, data: bytes) -> list[PostDraft]:
+    def parse_many(self, data: bytes) -> list[PostDraft]:
         """Parse HTML bytes to multiple PostDrafts.
 
         Args:
@@ -76,16 +76,17 @@ class HTMLParser(Parser, ABC):
             ParseContentError: If the HTML content is empty or invalid.
             ParseError: On unexpected parsing errors.
         """
-        _log.info("Parsing multiple articles for %s", src)
+        _log.info("Parsing multiple articles for %s", self._src)
 
         try:
-            soup = self._get_soup(src, data)
+            soup = self._get_soup(data)
 
             post_cards = self._find_post_cards(soup)
             if not post_cards:
+                selector = self._src.card_selector
                 raise ParseStructureError(
-                    issue=f"No post cards found with selector '{src.card_selector}'",
-                    src_url=src.url,
+                    issue=f"No post cards found with selector '{selector}'",
+                    src_url=self._src.url,
                 )
 
             return self._parse_post_card_list(post_cards)
@@ -97,7 +98,7 @@ class HTMLParser(Parser, ABC):
             _log.error("Unexpected error during parsing: %s", exc)
             raise ParseError(
                 message=f"Unexpected error during parsing: {exc}",
-                details={"src": src},
+                details={"src": self._src},
             ) from exc
 
     @abstractmethod
@@ -116,26 +117,26 @@ class HTMLParser(Parser, ABC):
     def _parse_post_article(self, article: Tag) -> PostDraft:
         """Extract a PostDraft from a single article element."""
 
-    def _get_soup(self, src: Source, data: bytes) -> BeautifulSoup:
+    def _get_soup(self, data: bytes) -> BeautifulSoup:
         if not data:
             raise ParseContentError(
                 issue="HTML content is empty",
-                src_url=src.url,
+                src_url=self._src.url,
             )
 
         try:
-            html = data.decode(encoding=src.encoding, errors="replace")
+            html = data.decode(encoding=self._src.encoding, errors="replace")
             if not html.strip():
                 raise ParseContentError(
                     issue="HTML content is empty",
-                    src_url=src.url,
+                    src_url=self._src.url,
                 )
 
             soup = BeautifulSoup(html, features="lxml")
             if not soup:
                 raise ParseContentError(
                     issue="HTML content is empty",
-                    src_url=src.url,
+                    src_url=self._src.url,
                 )
 
             return soup
@@ -143,14 +144,14 @@ class HTMLParser(Parser, ABC):
         except UnicodeDecodeError as exc:
             raise ParseContentError(
                 issue=f"HTML content is invalid: {exc}",
-                src_url=src.url,
+                src_url=self._src.url,
             )
 
         except Exception as exc:
             _log.error("Failed to parse HTML content: %s", exc)
             raise ParseContentError(
                 issue=f"HTML content is invalid: {exc}",
-                src_url=src.url,
+                src_url=self._src.url,
             )
 
     def _parse_post_card_list(self, post_cards: list[Tag]) -> list[PostDraft]:
