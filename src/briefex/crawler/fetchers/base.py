@@ -13,6 +13,8 @@ class Fetcher(ABC):
     """Abstract base class for fetchers that retrieve raw data."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self._args = args
+        self._kwargs = kwargs
         _log.info(
             "%s initialized with args=%r, kwargs=%r",
             self.__class__.__name__,

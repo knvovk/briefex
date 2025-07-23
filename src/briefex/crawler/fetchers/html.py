@@ -63,13 +63,13 @@ class HTMLFetcher(Fetcher):
         **kwargs: Any,
     ) -> None:
         super().__init__(
-            user_agents,
-            request_timeout,
-            pool_connections,
-            pool_maxsize,
-            max_retries,
-            retry_delay,
-            max_retry_delay,
+            user_agents=user_agents,
+            request_timeout=request_timeout,
+            pool_connections=pool_connections,
+            pool_maxsize=pool_maxsize,
+            max_retries=max_retries,
+            retry_delay=retry_delay,
+            max_retry_delay=max_retry_delay,
             **kwargs,
         )
         self._sessions_for_netloc: dict[str, requests.Session] = {}
