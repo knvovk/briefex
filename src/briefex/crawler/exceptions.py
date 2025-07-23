@@ -2,6 +2,7 @@ from __future__ import annotations
 
 
 class CrawlerException(Exception):
+    """Base exception for crawler errors, with message and optional details."""
 
     def __init__(self, message: str, details: dict | None = None) -> None:
         super().__init__(message)
@@ -18,6 +19,7 @@ class CrawlerException(Exception):
 
 
 class CrawlerConfigurationError(CrawlerException):
+    """Raised for invalid crawler configuration."""
 
     def __init__(self, issue: str, stage: str) -> None:
         super().__init__(
@@ -30,6 +32,7 @@ class CrawlerConfigurationError(CrawlerException):
 
 
 class InvalidSourceError(CrawlerException):
+    """Raised when a source URL is invalid."""
 
     def __init__(self, issue: str, src_url: str | None = None) -> None:
         super().__init__(
@@ -42,6 +45,7 @@ class InvalidSourceError(CrawlerException):
 
 
 class SourceNotFoundError(CrawlerException):
+    """Raised when the specified source URL is not found."""
 
     def __init__(self, src_url: str) -> None:
         super().__init__(
@@ -53,10 +57,11 @@ class SourceNotFoundError(CrawlerException):
 
 
 class FetchError(CrawlerException):
-    pass
+    """Base exception for fetch-related errors."""
 
 
 class FetchTimeoutError(FetchError):
+    """Raised when fetching a URL times out."""
 
     def __init__(self, src_url: str, timeout: float) -> None:
         super().__init__(
@@ -69,6 +74,7 @@ class FetchTimeoutError(FetchError):
 
 
 class FetchConnectionError(FetchError):
+    """Raised on connection errors during fetching."""
 
     def __init__(self, issue: str, src_url: str) -> None:
         super().__init__(
@@ -81,6 +87,7 @@ class FetchConnectionError(FetchError):
 
 
 class FetchHttpError(FetchError):
+    """Raised on HTTP status errors during fetching."""
 
     def __init__(
         self,
@@ -99,10 +106,11 @@ class FetchHttpError(FetchError):
 
 
 class ParseError(CrawlerException):
-    pass
+    """Base exception for parse-related errors."""
 
 
 class ParseContentError(ParseError):
+    """Raised when parsing content fails."""
 
     def __init__(self, issue: str, src_url: str) -> None:
         super().__init__(
@@ -115,6 +123,8 @@ class ParseContentError(ParseError):
 
 
 class ParseStructureError(ParseError):
+    """Raised when parsing HTML structure fails."""
+
     def __init__(self, issue: str, src_url: str) -> None:
         super().__init__(
             message=f"Error parsing structure for URL: {src_url}",
