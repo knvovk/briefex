@@ -15,6 +15,7 @@ class Fetcher(ABC):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._args = args
         self._kwargs = kwargs
+
         _log.info(
             "%s initialized with args=%r, kwargs=%r",
             self.__class__.__name__,
@@ -37,6 +38,7 @@ class FetcherFactory(ABC):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._fetcher_args = args
         self._fetcher_kwargs = kwargs
+
         _log.info(
             "%s initialized with args=%r, kwargs=%r",
             self.__class__.__name__,

@@ -11,6 +11,7 @@ _log = logging.getLogger(__name__)
 
 
 class Crawler(ABC):
+    """Base class for crawlers that coordinate fetching and parsing."""
 
     def __init__(
         self,
@@ -28,4 +29,12 @@ class Crawler(ABC):
         )
 
     @abstractmethod
-    def crawl(self, src: Source) -> list[Post]: ...
+    def crawl(self, src: Source) -> list[Post]:
+        """Crawl the given source to produce a list of posts.
+
+        Args:
+            src: Source configuration for the crawl.
+
+        Returns:
+            A list of Post objects extracted from the source.
+        """
