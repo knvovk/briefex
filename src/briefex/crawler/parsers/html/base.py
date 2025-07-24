@@ -103,15 +103,18 @@ class HTMLParser(Parser, ABC):
 
     @property
     @abstractmethod
-    def _article_selector(self) -> str: ...
+    def _article_selector(self) -> str:
+        """CSS selector used to locate the main article element."""
 
     @property
     @abstractmethod
-    def _card_selector(self) -> str: ...
+    def _card_selector(self) -> str:
+        """CSS selector used to locate post card elements."""
 
     @property
     @abstractmethod
-    def _encoding(self) -> str: ...
+    def _encoding(self) -> str:
+        """Character encoding used to decode HTML bytes."""
 
     @abstractmethod
     def _find_post_cards(self, soup: BeautifulSoup) -> list[Tag]:
