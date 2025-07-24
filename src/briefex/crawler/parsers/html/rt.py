@@ -22,7 +22,7 @@ class RT(HTMLParser):
 
     @override
     def _find_post_cards(self, soup: BeautifulSoup) -> list[Tag]:
-        return soup.find_all(self._src.post_card_tag, class_=self._src.post_card_cls)
+        return soup.find_all("div", class_="listing__card")
 
     @override
     def _parse_post_card(self, card: Tag) -> PostDraft:
@@ -62,7 +62,7 @@ class RT(HTMLParser):
 
     @override
     def _find_post_article(self, soup: BeautifulSoup) -> Tag:
-        return soup.find(self._src.article_tag, class_=self._src.article_cls)
+        return soup.find("div", class_="article_article-page")
 
     @override
     def _parse_post_article(self, article: Tag) -> PostDraft:
@@ -93,7 +93,7 @@ class RT(HTMLParser):
                 name="datetime",
                 netloc=utils.netloc(self._src.url),
             )
-            published_at = datetime.strptime(published_at_str, self._src.datetime_fmt)
+            published_at = datetime.strptime(published_at_str, "%Y-%m-%d %H:%M")
 
         except (ParseError, ValueError) as exc:
             _log.error("Failed to parse article pub date: %s", exc)
