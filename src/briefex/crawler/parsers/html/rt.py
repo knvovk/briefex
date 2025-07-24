@@ -20,6 +20,18 @@ _log = logging.getLogger(__name__)
 class RT(HTMLParser):
     """Parse RT HTML content into PostDraft objects."""
 
+    @property
+    def _article_selector(self) -> str:
+        return "div.article_article-page"
+
+    @property
+    def _card_selector(self) -> str:
+        return "div.listing__card"
+
+    @property
+    def _encoding(self) -> str:
+        return "utf-8"
+
     @override
     def _find_post_cards(self, soup: BeautifulSoup) -> list[Tag]:
         return soup.find_all("div", class_="listing__card")

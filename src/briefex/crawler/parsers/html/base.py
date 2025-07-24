@@ -42,7 +42,7 @@ class HTMLParser(Parser, ABC):
 
             article = self._find_post_article(soup)
             if not article:
-                selector = self._src.article_selector
+                selector = self._article_selector
                 raise ParseStructureError(
                     issue=f"No article found with selector '{selector}'",
                     src_url=self._src.url,
@@ -83,7 +83,7 @@ class HTMLParser(Parser, ABC):
 
             post_cards = self._find_post_cards(soup)
             if not post_cards:
-                selector = self._src.card_selector
+                selector = self._card_selector
                 raise ParseStructureError(
                     issue=f"No post cards found with selector '{selector}'",
                     src_url=self._src.url,
@@ -100,6 +100,18 @@ class HTMLParser(Parser, ABC):
                 message=f"Unexpected error during parsing: {exc}",
                 details={"src": self._src},
             ) from exc
+
+    @property
+    @abstractmethod
+    def _article_selector(self) -> str: ...
+
+    @property
+    @abstractmethod
+    def _card_selector(self) -> str: ...
+
+    @property
+    @abstractmethod
+    def _encoding(self) -> str: ...
 
     @abstractmethod
     def _find_post_cards(self, soup: BeautifulSoup) -> list[Tag]:
@@ -125,7 +137,7 @@ class HTMLParser(Parser, ABC):
             )
 
         try:
-            html = data.decode(encoding=self._src.encoding, errors="replace")
+            html = data.decode(encoding=self._encoding, errors="replace")
             if not html.strip():
                 raise ParseContentError(
                     issue="HTML content is empty",
@@ -159,6 +171,7 @@ class HTMLParser(Parser, ABC):
         for idx, post_card in enumerate(post_cards):
             try:
                 post = self._parse_post_card(post_card)
+                post.source = self._src if not post.source else post.source
                 posts.append(post)
             except Exception as exc:
                 _log.error(
