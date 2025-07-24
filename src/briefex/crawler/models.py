@@ -19,6 +19,12 @@ class Source(BaseModel):
     type: SourceType
     url: SourceCode
 
+    def __repr__(self) -> str:
+        return f"{self.name} (code_name={self.code}, type={self.type})"
+
+    def __str__(self) -> str:
+        return repr(self)
+
 
 class Post(BaseModel):
     """Model for a fully parsed post."""
@@ -45,7 +51,7 @@ class PostDraft(BaseModel):
         Args:
             other: Draft whose non-null fields override this draft's fields.
         """
-        for field_name in PostDraft.model_fields():
+        for field_name in PostDraft.model_fields.keys():
             other_value = getattr(other, field_name)
             if other_value is not None:
                 setattr(self, field_name, other_value)
