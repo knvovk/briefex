@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from typing import Any
 
 from briefex.crawler.fetchers import FetcherFactory
 from briefex.crawler.models import Post, Source
@@ -38,3 +39,22 @@ class Crawler(ABC):
         Returns:
             A list of Post objects extracted from the source.
         """
+
+
+class CrawlerFactory(ABC):
+    """Factory interface for creating Crawler instances."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self._crawler_args = args
+        self._crawler_kwargs = kwargs
+
+        _log.info(
+            "%s initialized with args=%r, kwargs=%r",
+            self.__class__.__name__,
+            self._crawler_args,
+            self._crawler_kwargs,
+        )
+
+    @abstractmethod
+    def create(self) -> Crawler:
+        """Create and return a new Crawler instance."""
