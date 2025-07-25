@@ -15,12 +15,12 @@ class Source(BaseModel):
     """Model representing a source to crawl."""
 
     name: str
-    code: str
+    code_name: str
     type: SourceType
     url: SourceCode
 
     def __repr__(self) -> str:
-        return f"{self.name} (code_name={self.code}, type={self.type})"
+        return f"{self.name} (code_name={self.code_name}, type={self.type})"
 
     def __str__(self) -> str:
         return repr(self)

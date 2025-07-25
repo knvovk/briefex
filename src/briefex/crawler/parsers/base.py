@@ -52,11 +52,14 @@ class ParserFactory(ABC):
     """Abstract base class for factories that create Parser instances."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self._parser_args = args
+        self._parser_kwargs = kwargs
+
         _log.info(
             "%s initialized with args=%r, kwargs=%r",
             self.__class__.__name__,
-            args,
-            kwargs,
+            self._parser_args,
+            self._parser_kwargs,
         )
 
     @abstractmethod
