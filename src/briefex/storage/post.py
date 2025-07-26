@@ -16,7 +16,7 @@ from briefex.storage.exceptions import (
     ObjectNotFoundError,
     StorageException,
 )
-from briefex.storage.session import inject_session
+from briefex.storage.session import connect
 
 _log = logging.getLogger(__name__)
 
@@ -24,8 +24,8 @@ _log = logging.getLogger(__name__)
 class SQLAlchemyPostStorage(PostStorage):
     """Storage for Post entities using SQLAlchemy ORM."""
 
-    @inject_session
     @override
+    @connect
     def add(self, obj: Post, *, session: Session) -> Post:
         """Add a Post to storage.
 
@@ -56,8 +56,8 @@ class SQLAlchemyPostStorage(PostStorage):
         _log.debug("Successfully added new post to storage")
         return obj
 
-    @inject_session
     @override
+    @connect
     def add_all(self, objs: list[Post], *, session: Session) -> list[Post]:
         """Add multiple Post instances to storage.
 
@@ -88,8 +88,8 @@ class SQLAlchemyPostStorage(PostStorage):
         _log.debug("Successfully added all new posts to storage")
         return objs
 
-    @inject_session
     @override
+    @connect
     def get(self, pk: uuid.UUID, *, session: Session) -> Post:
         """Retrieve a Post by primary key.
 
@@ -131,8 +131,8 @@ class SQLAlchemyPostStorage(PostStorage):
                 },
             ) from exc
 
-    @inject_session
     @override
+    @connect
     def get_recent(self, days: int, *, session: Session) -> list[Post]:
         """Retrieve Posts published within the last given number of days.
 
@@ -179,8 +179,8 @@ class SQLAlchemyPostStorage(PostStorage):
                 },
             ) from exc
 
-    @inject_session
     @override
+    @connect
     def get_all(self, filters: dict, *, session: Session) -> list[Post]:
         """Retrieve all Posts matching the provided filters.
 
@@ -222,8 +222,8 @@ class SQLAlchemyPostStorage(PostStorage):
                 },
             ) from exc
 
-    @inject_session
     @override
+    @connect
     def update(self, pk: uuid.UUID, data: dict, *, session: Session) -> Post:
         """Update a Post's fields and return the updated instance.
 
@@ -262,8 +262,8 @@ class SQLAlchemyPostStorage(PostStorage):
                 },
             ) from exc
 
-    @inject_session
     @override
+    @connect
     def delete(self, pk: uuid.UUID, *, session: Session) -> None:
         """Delete a Post by primary key.
 

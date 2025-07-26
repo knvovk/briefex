@@ -18,6 +18,7 @@ from briefex.storage.factory import (
     DefaultSourceStorageFactory,
 )
 from briefex.storage.models import Post, PostStatus, Source, SourceType
+from briefex.storage.session import init_connection
 
 _source_storage_factory: SourceStorageFactory | None = None
 _post_storage_factory: PostStorageFactory | None = None
@@ -55,6 +56,7 @@ __all__ = [
     "PostStatus",
     "Source",
     "SourceType",
+    "init_connection",
     "get_default_source_storage_factory",
     "get_default_post_storage_factory",
 ]
