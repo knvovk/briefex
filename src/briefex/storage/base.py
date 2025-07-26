@@ -1,286 +1,110 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
-from typing import Any, ParamSpec, TypeVar
+import uuid
+from abc import ABC, abstractmethod
+from typing import Any
 
-from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
-from .exceptions import (
-    ModelNotFoundError,
-    QueryExecutionError,
-    StorageConnectionError,
-    create_from_integrity_err,
-)
-from .session import inject_session
+from briefex.storage.models import Post, Source
 
-logger = logging.getLogger(__name__)
-
-P = ParamSpec("P")
-R = TypeVar("R")
+_log = logging.getLogger(__name__)
 
 
-class Storage[T]:
-    """Base storage class for database operations.
+class SourceStorage(ABC):
+    """Interface for CRUD operations on Source entities."""
 
-    This class provides basic CRUD operations for database models.
+    @abstractmethod
+    def add(self, obj: Source, *, session: Session) -> Source:
+        """Add a Source record and return the persisted instance."""
 
-    Args:
-        model: The SQLAlchemy model class to operate on.
-    """
+    @abstractmethod
+    def add_all(self, objs: list[Source], *, session: Session) -> list[Source]:
+        """Add multiple Source records and return the persisted instances."""
 
-    def __init__(self, model: type[T]) -> None:
-        """Initialize the storage with a model class.
+    @abstractmethod
+    def get(self, pk: uuid.UUID, *, session: Session) -> Source:
+        """Retrieve a Source by its primary key."""
 
-        Args:
-            model: The SQLAlchemy model class to operate on.
-        """
-        self._model: type[T] = model
+    @abstractmethod
+    def get_all(self, filters: dict, *, session: Session) -> list[Source]:
+        """Retrieve all Sources matching given filters."""
 
-    @inject_session
-    def add(self, obj: T, *, session: Session) -> T:
-        """Add a single object to the database.
+    @abstractmethod
+    def update(self, pk: uuid.UUID, data: dict, *, session: Session) -> Source:
+        """Update a Source record and return the updated instance."""
 
-        Args:
-            obj: The object to add.
-            session: The database session to use.
+    @abstractmethod
+    def delete(self, pk: uuid.UUID, *, session: Session) -> None:
+        """Delete a Source by its primary key."""
 
-        Returns:
-            The added object.
 
-        Raises:
-            StorageException: If there's an error during the operation.
-        """
-        return self._execute(lambda: self._add_func(obj, session))
+class PostStorage(ABC):
+    """Interface for CRUD operations on Post entities."""
 
-    @inject_session
-    def add_many(self, objs: list[T], *, session: Session) -> list[T]:
-        """Add multiple objects to the database.
+    @abstractmethod
+    def add(self, obj: Post, *, session: Session) -> Post:
+        """Add a Post record and return the persisted instance."""
 
-        Args:
-            objs: A list of objects to add.
-            session: The database session to use.
+    @abstractmethod
+    def add_all(self, objs: list[Post], *, session: Session) -> list[Post]:
+        """Add multiple Post records and return the persisted instances."""
 
-        Returns:
-            The list of added objects.
+    @abstractmethod
+    def get(self, pk: uuid.UUID, *, session: Session) -> Post:
+        """Retrieve a Post by its primary key."""
 
-        Raises:
-            StorageException: If there's an error during the operation.
-        """
-        return self._execute(lambda: self._add_many_func(objs, session))
+    @abstractmethod
+    def get_recent(self, days: int, *, session: Session) -> list[Post]:
+        """Retrieve Posts published within the last given number of days."""
 
-    @inject_session
-    def get(self, pk: Any, *, session: Session) -> T:
-        """Retrieve a single object by its primary key.
+    @abstractmethod
+    def get_all(self, filters: dict, *, session: Session) -> list[Post]:
+        """Retrieve all Posts matching given filters."""
 
-        Args:
-            pk: The primary key of the object to retrieve.
-            session: The database session to use.
+    @abstractmethod
+    def update(self, pk: uuid.UUID, data: dict, *, session: Session) -> Post:
+        """Update a Post by its primary key with provided data and return it."""
 
-        Returns:
-            The retrieved object.
+    @abstractmethod
+    def delete(self, pk: uuid.UUID, *, session: Session) -> None:
+        """Delete a Post by its primary key."""
 
-        Raises:
-            ModelNotFoundError: If the object with the given primary key doesn't exist.
-            StorageException: If there's an error during the operation.
-        """
-        return self._execute(lambda: self._get_func(pk, session))
 
-    @inject_session
-    def get_many(
-        self,
-        filters: dict[str, Any] | None = None,
-        *,
-        session: Session,
-    ) -> list[T]:
-        """Retrieve multiple objects based on filters.
+class SourceStorageFactory(ABC):
+    """Factory interface for creating SourceStorage instances."""
 
-        Args:
-            filters: A dictionary of attribute-value pairs to filter objects by.
-                If None, all objects of the model type are returned.
-            session: The database session to use.
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self._storage_args = args
+        self._storage_kwargs = kwargs
 
-        Returns:
-            A list of objects matching the filters.
-
-        Raises:
-            StorageException: If there's an error during the operation.
-        """
-        return self._execute(lambda: self._get_many_func(filters or {}, session))
-
-    @inject_session
-    def update(self, pk: Any, data: dict[str, Any], *, session: Session) -> T:
-        """Update an object by its primary key.
-
-        Args:
-            pk: The primary key of the object to update.
-            data: A dictionary of attribute-value pairs to update.
-            session: The database session to use.
-
-        Returns:
-            The updated object.
-
-        Raises:
-            ModelNotFoundError: If the object with the given primary key doesn't exist.
-            StorageException: If there's an error during the operation.
-        """
-        return self._execute(lambda: self._update_func(pk, data, session))
-
-    @inject_session
-    def delete(self, pk: Any, *, session: Session) -> None:
-        """Delete an object by its primary key.
-
-        Args:
-            pk: The primary key of the object to delete.
-            session: The database session to use.
-
-        Raises:
-            ModelNotFoundError: If the object with the given primary key doesn't exist.
-            StorageException: If there's an error during the operation.
-        """
-        self._execute(lambda: self._delete_func(pk, session))
-        return None
-
-    def _execute(self, operation: Callable[[], R]) -> R:
-        """Execute a database operation with error handling.
-
-        Args:
-            operation: A callable that performs the database operation.
-
-        Returns:
-            The result of the operation.
-
-        Raises:
-            StorageException: If there's an error during the operation.
-        """
-        try:
-            return operation()
-        except IntegrityError as exc:
-            logger.error("IntegrityError caught: %s", exc, exc_info=True)
-            create_from_integrity_err(exc)
-        except OperationalError as exc:
-            logger.error("OperationalError caught: %s", exc, exc_info=True)
-            raise StorageConnectionError(
-                details={
-                    "reason": str(exc),
-                }
-            ) from exc
-        except Exception as exc:
-            logger.error("Unexpected error during operation: %s", exc)
-            raise QueryExecutionError(reason=str(exc)) from exc
-
-    def _add_func(self, obj: T, session: Session) -> T:
-        """Internal method to add a single object to the session.
-
-        Args:
-            obj: The object to add.
-            session: The database session to use.
-
-        Returns:
-            The added object.
-        """
-        logger.debug("Adding %s object to session", self._model.__name__)
-        session.add(obj)
-        logger.info("%s object added to session", self._model.__name__)
-        return obj
-
-    def _add_many_func(self, objs: list[T], session: Session) -> list[T]:
-        """Internal method to add multiple objects to the session.
-
-        Args:
-            objs: A list of objects to add.
-            session: The database session to use.
-
-        Returns:
-            The list of added objects.
-        """
-        logger.debug(
-            "Adding %d %s objects to session",
-            len(objs),
-            self._model.__name__,
+        _log.info(
+            "%s initialized with args=%r, kwargs=%r",
+            self.__class__.__name__,
+            self._storage_args,
+            self._storage_kwargs,
         )
-        session.add_all(objs)
-        logger.info(
-            "%d %s objects added to session",
-            len(objs),
-            self._model.__name__,
+
+    @abstractmethod
+    def create(self) -> SourceStorage:
+        """Create and return a new SourceStorage instance."""
+
+
+class PostStorageFactory(ABC):
+    """Factory interface for creating PostStorage instances."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self._storage_args = args
+        self._storage_kwargs = kwargs
+
+        _log.info(
+            "%s initialized with args=%r, kwargs=%r",
+            self.__class__.__name__,
+            self._storage_args,
+            self._storage_kwargs,
         )
-        return objs
 
-    def _get_func(self, pk: Any, session: Session) -> T:
-        """Internal method to retrieve a single object by its primary key.
-
-        Args:
-            pk: The primary key of the object to retrieve.
-            session: The database session to use.
-
-        Returns:
-            The retrieved object.
-
-        Raises:
-            ModelNotFoundError: If the object with the given primary key doesn't exist.
-        """
-        logger.debug("Retrieving %s object with id=%s", self._model.__name__, pk)
-        instance = session.get(self._model, pk)
-        if not instance:
-            raise ModelNotFoundError(name=self._model.__name__, pk=str(pk))
-        logger.info("%s object with id=%s retrieved", self._model.__name__, pk)
-        return instance
-
-    def _get_many_func(self, filters: dict[str, Any], session: Session) -> list[T]:
-        """Internal method to retrieve multiple objects based on filters.
-
-        Args:
-            filters: A dictionary of attribute-value pairs to filter objects by.
-            session: The database session to use.
-
-        Returns:
-            A list of objects matching the filters.
-        """
-        logger.debug(
-            "Retrieving %s objects with filters=%s",
-            self._model.__name__,
-            filters,
-        )
-        query = session.query(self._model).filter_by(**filters)
-        objs: list[T] = list(query.all())
-        logger.info("%d %s objects retrieved", len(objs), self._model.__name__)
-        return objs
-
-    def _update_func(self, pk: Any, data: dict[str, Any], session: Session) -> T:
-        """Internal method to update an object by its primary key.
-
-        Args:
-            pk: The primary key of the object to update.
-            data: A dictionary of attribute-value pairs to update.
-            session: The database session to use.
-
-        Returns:
-            The updated object.
-
-        Raises:
-            ModelNotFoundError: If the object with the given primary key doesn't exist.
-        """
-        logger.debug("Updating %s object with id=%s", self._model.__name__, pk)
-        instance = self._get_func(pk, session)
-        for k, v in data.items():
-            setattr(instance, k, v)
-        logger.info("%s object with id=%s updated", self._model.__name__, pk)
-        return instance
-
-    def _delete_func(self, pk: Any, session: Session) -> None:
-        """Internal method to delete an object by its primary key.
-
-        Args:
-            pk: The primary key of the object to delete.
-            session: The database session to use.
-
-        Raises:
-            ModelNotFoundError: If the object with the given primary key doesn't exist.
-        """
-        logger.debug("Deleting %s object with id=%s", self._model.__name__, pk)
-        instance = self._get_func(pk, session)
-        session.delete(instance)
-        logger.info("%s object with id=%s deleted", self._model.__name__, pk)
-        return None
+    @abstractmethod
+    def create(self) -> PostStorage:
+        """Create and return a new PostStorage instance."""

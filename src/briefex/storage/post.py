@@ -1,72 +1,295 @@
-import logging
-from datetime import UTC, datetime, timedelta
+from __future__ import annotations
 
+import datetime
+import logging
+import uuid
+from typing import override
+
+from sqlalchemy import exc as sa_exc
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .base import Storage
-from .models import Post
-from .registry import register
-from .session import inject_session
+from briefex.storage import Post
+from briefex.storage.base import PostStorage
+from briefex.storage.exceptions import (
+    DuplicateObjectError,
+    ObjectNotFoundError,
+    StorageException,
+)
+from briefex.storage.session import inject_session
 
-logger = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 
 
-@register(Post)
-class PostStorage(Storage[Post]):
-    """Storage class for Post model.
-
-    This class provides methods for storing and retrieving Post objects.
-    It extends the base Storage class with Post-specific functionality.
-    """
-
-    def __init__(self) -> None:
-        """Initialize a new PostStorage instance.
-
-        Sets up the storage with the Post model.
-        """
-        super().__init__(Post)
+class SQLAlchemyPostStorage(PostStorage):
+    """Storage for Post entities using SQLAlchemy ORM."""
 
     @inject_session
-    def get_recent(self, days: int, *, session: Session) -> list[Post]:
-        """Retrieve posts published within the specified number of days.
+    @override
+    def add(self, obj: Post, *, session: Session) -> Post:
+        """Add a Post to storage.
 
         Args:
-            days: Number of days to look back.
-            session: The database session to use.
+            obj: Post instance to add.
+            session: SQLAlchemy session to use.
 
         Returns:
-            A list of Post objects published within the specified time period,
-            ordered by publication date (newest first).
+            The added Post instance.
 
         Raises:
-            StorageException: If there's an error during the operation.
+            DuplicateObjectError: If the post violates a uniqueness constraint.
         """
-        return self._execute(lambda: self._get_recent_func(days, session))
+        _log.debug("Adding new post to storage")
 
-    def _get_recent_func(self, days: int, session: Session) -> list[Post]:
-        """Internal method to retrieve recent posts.
+        try:
+            session.add(obj)
+        except sa_exc.IntegrityError as exc:
+            _log.error("Integrity error during adding post to session: %s", exc)
+            raise DuplicateObjectError(
+                cls=Post.__class__.__name__,
+                details={
+                    "issue": str(exc),
+                    "obj": obj,
+                },
+            ) from exc
 
-        This method implements the actual database query to retrieve posts
-        published within the specified number of days.
+        _log.debug("Successfully added new post to storage")
+        return obj
+
+    @inject_session
+    @override
+    def add_all(self, objs: list[Post], *, session: Session) -> list[Post]:
+        """Add multiple Post instances to storage.
+
+        Args:
+            objs: List of Post instances to add.
+            session: SQLAlchemy session to use.
+
+        Returns:
+            The list of added Post instances.
+
+        Raises:
+            DuplicateObjectError: If any post violates a uniqueness constraint.
+        """
+        _log.debug("Adding all new posts to storage")
+
+        try:
+            session.add_all(objs)
+        except sa_exc.IntegrityError as exc:
+            _log.error("Integrity error during adding posts to session: %s", exc)
+            raise DuplicateObjectError(
+                cls=Post.__class__.__name__,
+                details={
+                    "issue": str(exc),
+                    "objs": objs,
+                },
+            ) from exc
+
+        _log.debug("Successfully added all new posts to storage")
+        return objs
+
+    @inject_session
+    @override
+    def get(self, pk: uuid.UUID, *, session: Session) -> Post:
+        """Retrieve a Post by primary key.
+
+        Args:
+            pk: UUID of the Post to retrieve.
+            session: SQLAlchemy session to use.
+
+        Returns:
+            The retrieved Post instance.
+
+        Raises:
+            ObjectNotFoundError: If no Post with the given pk exists.
+            StorageException: On unexpected errors.
+        """
+        _log.debug("Retrieving post from storage (pk: %s)", pk)
+
+        try:
+            instance = session.get_one(Post, pk)
+            _log.debug("Successfully retrieved post from storage (pk: %s)", pk)
+            return instance
+
+        except sa_exc.NoResultFound as exc:
+            raise ObjectNotFoundError(
+                cls=Post.__class__.__name__,
+                details={
+                    "pk": pk,
+                },
+            ) from exc
+
+        except Exception as exc:
+            _log.error(
+                "Unexpected error during retrieving post from storage: %s",
+                exc,
+            )
+            raise StorageException(
+                message=f"Unexpected error during retrieving post from storage: {exc}",
+                details={
+                    "pk": pk,
+                },
+            ) from exc
+
+    @inject_session
+    @override
+    def get_recent(self, days: int, *, session: Session) -> list[Post]:
+        """Retrieve Posts published within the last given number of days.
 
         Args:
             days: Number of days to look back.
-            session: The database session to use.
+            session: SQLAlchemy session to use.
 
         Returns:
-            A list of Post objects published within the specified time period,
-            ordered by publication date (newest first).
+            List of Post instances.
+
+        Raises:
+            StorageException: On unexpected errors.
         """
-        logger.debug("Retrieving recent Post objects")
+        _log.debug("Retrieving recent posts from storage (days: %d)", days)
 
-        cutoff = datetime.now(UTC) - timedelta(days=days)
-        query = (
-            select(self._model)
-            .where(self._model.created_at >= cutoff)
-            .order_by(self._model.created_at.desc())
-        )
-        objs = list(session.scalars(query).all())
+        try:
+            cutoff = datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=days)
+            query = (
+                select(Post)
+                .where(Post.created_at >= cutoff)
+                .order_by(Post.created_at.desc())
+            )
+            objs = list(session.scalars(query).all())
 
-        logger.debug("%d recent Post objects retrieved", len(objs))
-        return objs
+            _log.debug(
+                "Successfully retrieved %d recent posts from storage (days: %d)",
+                len(objs),
+                days,
+            )
+            return objs
+
+        except Exception as exc:
+            _log.error(
+                "Unexpected error during retrieving recent posts from storage: %s",
+                exc,
+            )
+            raise StorageException(
+                message=(
+                    f"Unexpected error during retrieving "
+                    f"recent posts from storage: {exc}"
+                ),
+                details={
+                    "days": days,
+                },
+            ) from exc
+
+    @inject_session
+    @override
+    def get_all(self, filters: dict, *, session: Session) -> list[Post]:
+        """Retrieve all Posts matching the provided filters.
+
+        Args:
+            filters: Dictionary of field-value pairs to filter.
+            session: SQLAlchemy session to use.
+
+        Returns:
+            List of matching Post instances.
+
+        Raises:
+            StorageException: On unexpected errors.
+        """
+        _log.debug("Retrieving all posts from storage (filters: %r)", filters)
+
+        try:
+            query = session.query(Post).filter_by(**filters)
+            objs = list(query.all())
+
+            _log.debug(
+                "Successfully retrieved %d posts from storage (filters: %r)",
+                len(objs),
+                filters,
+            )
+            return objs
+
+        except Exception as exc:
+            _log.error(
+                "Unexpected error during retrieving all posts from storage: %s",
+                exc,
+            )
+            raise StorageException(
+                message=(
+                    f"Unexpected error during retrieving "
+                    f"all posts from storage: {exc}"
+                ),
+                details={
+                    "filters": filters,
+                },
+            ) from exc
+
+    @inject_session
+    @override
+    def update(self, pk: uuid.UUID, data: dict, *, session: Session) -> Post:
+        """Update a Post's fields and return the updated instance.
+
+        Args:
+            pk: UUID of the Post to update.
+            data: Dictionary of field-value pairs to update.
+            session: SQLAlchemy session to use.
+
+        Returns:
+            The updated Post instance.
+
+        Raises:
+            ObjectNotFoundError: If no Post with the given pk exists.
+            StorageException: On unexpected errors.
+        """
+        _log.debug("Updating post from storage (pk: %s)", pk)
+
+        try:
+            instance = self.get(pk, session=session)
+            for k, v in data.items():
+                setattr(instance, k, v)
+
+            _log.debug("Successfully updated post from storage (pk: %s)", pk)
+            return instance
+
+        except ObjectNotFoundError:
+            raise
+
+        except Exception as exc:
+            _log.error("Unexpected error during updating post from storage: %s", exc)
+            raise StorageException(
+                message=f"Unexpected error during updating post from storage: {exc}",
+                details={
+                    "pk": pk,
+                    "data": data,
+                },
+            ) from exc
+
+    @inject_session
+    @override
+    def delete(self, pk: uuid.UUID, *, session: Session) -> None:
+        """Delete a Post by primary key.
+
+        Args:
+            pk: UUID of the Post to delete.
+            session: SQLAlchemy session to use.
+
+        Raises:
+            ObjectNotFoundError: If no Post with the given pk exists.
+            StorageException: On unexpected errors.
+        """
+        _log.debug("Deleting post from storage (pk: %s)", pk)
+
+        try:
+            instance = self.get(pk, session=session)
+            session.delete(instance)
+            _log.debug("Successfully deleted post from storage (pk: %s)", pk)
+
+        except ObjectNotFoundError:
+            raise
+
+        except Exception as exc:
+            _log.error("Unexpected error during deleting post from storage: %s", exc)
+            raise StorageException(
+                message=f"Unexpected error during deleting post from storage: {exc}",
+                details={
+                    "pk": pk,
+                },
+            ) from exc
