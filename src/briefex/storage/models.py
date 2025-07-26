@@ -11,44 +11,20 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Model(DeclarativeBase):
-    """Base model class for all database models.
-
-    This is an abstract base class that all model classes should inherit from.
-    It provides common functionality for all models.
-    """
+    """Abstract base class for all declarative ORM models."""
 
     __abstract__ = True
 
 
 class SourceType(str, enum.Enum):
-    """Enumeration of supported source types.
-
-    This enum defines the types of sources that can be crawled.
-
-    Attributes:
-        HTML: HTML web page source type.
-        RSS: RSS feed source type.
-    """
+    """Supported content source types."""
 
     HTML = "HTML"
     RSS = "RSS"
 
 
 class Source(Model):
-    """Model representing a content source.
-
-    A source is a website or feed from which posts are collected.
-
-    Attributes:
-        id: Unique identifier for the source.
-        name: Human-readable name of the source.
-        code_name: Machine-readable unique identifier for the source.
-        type: Type of the source (HTML or RSS).
-        url: URL of the source.
-        created_at: Timestamp when the source was created.
-        updated_at: Timestamp when the source was last updated.
-        posts: List of posts from this source.
-    """
+    """Represents a content source with its metadata and relationships."""
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -78,30 +54,11 @@ class Source(Model):
     __tablename__ = "sources"
 
     def __repr__(self) -> str:
-        """Return a string representation of the Source object.
-
-        Returns:
-            A string containing the code_name and type of the source.
-        """
         return f"{self.name} (code_name={self.code_name}, type={self.type})"
 
 
 class PostStatus(enum.IntEnum):
-    """Enumeration of post statuses.
-
-    This enum defines the possible statuses of a post.
-
-    Attributes:
-        PENDING_SUMMARY: Post is pending summary generation.
-        SUMMARY_READY: Summary generation is complete and ready for moderation.
-        SUMMARY_RETRY: Summary generation failed and needs to be retried.
-        SUMMARY_CENSORED: Summary generation was censored and should not be published.
-        MODERATION_APPROVED: Post has been approved for publication.
-        MODERATION_REJECTED: Post has been rejected for publication.
-        SCHEDULED: Post is scheduled for publication.
-        PUBLISHED: Post has been published.
-        ARCHIVED: Post has been archived and is no longer available.
-    """
+    """Enumeration of possible post processing states."""
 
     PENDING_SUMMARY = 10
 
@@ -119,22 +76,7 @@ class PostStatus(enum.IntEnum):
 
 
 class Post(Model):
-    """Model representing a content post.
-
-    A post is a piece of content collected from a source.
-
-    Attributes:
-        id: Unique identifier for the post.
-        title: Title of the post.
-        content: Full content of the post.
-        summary: Brief summary of the post content.
-        canonical_url: Original URL of the post.
-        source_id: ID of the source this post was collected from.
-        published_at: Timestamp when the post was published.
-        created_at: Timestamp when the post was created in the system.
-        updated_at: Timestamp when the post was last updated.
-        source: The source this post was collected from.
-    """
+    """Represents a crawled post with content, status, and metadata."""
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -179,17 +121,7 @@ class Post(Model):
     __tablename__ = "posts"
 
     def __repr__(self) -> str:
-        """Return a string representation of the Post object.
-
-        Returns:
-            A string containing the title and source of the post.
-        """
         return f"Post(id={self.id})"
 
     def __str__(self) -> str:
-        """Return a string representation of the Post object.
-
-        Returns:
-            A string containing the title and source of the post.
-        """
         return repr(self)
