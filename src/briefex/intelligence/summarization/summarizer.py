@@ -1,103 +1,94 @@
+from __future__ import annotations
+
 import logging
-from typing import override
+from typing import Any, override
 
-from briefex import llm
-from briefex.llm.exceptions import LLMException
+from briefex.intelligence.exceptions import (
+    IntelligenceContentCensoredError,
+    IntelligenceSummarizationError,
+)
+from briefex.intelligence.summarization.base import Summarizer
+from briefex.llm import (
+    ChatCompletionMessage,
+    ChatCompletionParams,
+    ChatCompletionRequest,
+    ChatCompletionStatus,
+    Provider,
+    ProviderFactory,
+    Role,
+)
 
-from ..exceptions import SummarizationError
-from .base import Summarizer
-
-logger = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 
 
-class SummarizerImpl(Summarizer):
-    """Implementation of the Summarizer interface.
+class DefaultSummarizer(Summarizer):
 
-    This class provides a concrete implementation of the Summarizer
-    abstract base class, using LLM to generate text summaries.
-    """
-
-    def __init__(self, *args, **kwargs) -> None:
-        """Initialize a new SummarizerImpl.
-
-        Args:
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments. Expected keys include:
-                summarization_prompt: The prompt to use for summarization.
-                summarization_model: The LLM model to use.
-                summarization_temperature: The temperature parameter for the model.
-                summarization_max_tokens: The maximum number of tokens in the response.
-                chat_completion_dispatcher: The dispatcher for chat completion requests.
-        """
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+        self._provider_factory: ProviderFactory = kwargs.get("provider_factory")
         self._prompt = kwargs.get("summarization_prompt")
         self._model = kwargs.get("summarization_model")
         self._temperature = kwargs.get("summarization_temperature")
         self._max_tokens = kwargs.get("summarization_max_tokens")
-        self._chat_completion_dispatcher = kwargs.get("chat_completion_dispatcher")
-        logger.info("%s initialized", self.__class__.__name__)
 
     @override
     def summarize(self, text: str) -> str:
-        """Summarize the given text using LLM.
+        _log.info("Starting text summarization (input length: %d chars)", len(text))
 
-        This method creates a chat completion request with the input text,
-        sends it to the LLM, and returns the generated summary.
-
-        Args:
-            text: The text to summarize.
-
-        Returns:
-            A concise summary of the input text.
-
-        Raises:
-            SummarizationError: If the text cannot be summarized due to LLM errors
-                or other unexpected issues.
-        """
-        logger.info("Starting summarization for text (length=%d)", len(text))
-
+        provider: Provider | None = None
         try:
-            request = self._create_chat_completion_request(text)
-            response = self._chat_completion_dispatcher.complete(request)
-            content = response.message.content
-            logger.info("Finished summarization for text (length=%d)", len(content))
-            return content
+            request = self._build_completion_request(text)
+            provider = self._provider_factory.create(self._model)
+            response = provider.complete(request)
 
-        except LLMException as exc:
-            logger.error("Summarization failed: %s", exc.message)
-            raise SummarizationError(
-                reason=exc.details.get("reason", exc.message)
-            ) from exc
+            if response.status == ChatCompletionStatus.CONTENT_FILTERED:
+                _log.warning(
+                    "Summarization aborted: content was filtered by provider %s",
+                    provider.__class__.__name__,
+                )
+                raise IntelligenceContentCensoredError(
+                    issue=response.message.content,
+                    provider=provider.__class__.__name__,
+                )
+
+            _log.info(
+                "Summarization completed successfully "
+                "(output length: %d chars, model: %s, status: %s, "
+                "prompt tokens: %d, completion tokens: %d, total tokens: %d)",
+                len(response.message.content),
+                response.model,
+                response.status,
+                response.usage.prompt_tokens,
+                response.usage.completion_tokens,
+                response.usage.total_tokens,
+            )
+            return response.message.content
+
+        except IntelligenceContentCensoredError:
+            raise
 
         except Exception as exc:
-            logger.error("Unexpected error during summarization: %s", exc)
-            raise SummarizationError(reason=str(exc)) from exc
+            _log.error("Summarization failed due to unexpected error: %s", exc)
+            raise IntelligenceSummarizationError(
+                issue=str(exc),
+                provider=provider.__class__.__name__ if provider else None,
+            ) from exc
 
-    def _create_chat_completion_request(self, text: str) -> llm.ChatCompletionRequest:
-        """Create a chat completion request for summarization.
-
-        This method constructs a ChatCompletionRequest object with the appropriate
-        model, parameters, and messages for summarizing the given text.
-
-        Args:
-            text: The text to be summarized.
-
-        Returns:
-            A configured ChatCompletionRequest object ready to be sent to the LLM.
-        """
-        return llm.ChatCompletionRequest(
+    def _build_completion_request(self, text: str) -> ChatCompletionRequest:
+        return ChatCompletionRequest(
             model=self._model,
-            params=llm.ChatCompletionParams(
+            params=ChatCompletionParams(
                 temperature=self._temperature,
                 max_tokens=self._max_tokens,
+                stream=False,
             ),
             messages=[
-                llm.ChatCompletionMessage(
-                    role=llm.Role.ASSISTANT,
+                ChatCompletionMessage(
+                    role=Role.ASSISTANT,
                     content=self._prompt,
                 ),
-                llm.ChatCompletionMessage(
-                    role=llm.Role.USER,
+                ChatCompletionMessage(
+                    role=Role.USER,
                     content=text,
                 ),
             ],
