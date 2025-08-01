@@ -22,6 +22,7 @@ _log = logging.getLogger(__name__)
 
 
 class DefaultSummarizer(Summarizer):
+    """Summarizer that uses an LLM provider for text summarization."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -33,6 +34,18 @@ class DefaultSummarizer(Summarizer):
 
     @override
     def summarize(self, text: str) -> str:
+        """Generate a concise summary of the input text.
+
+        Args:
+            text: The text to summarize.
+
+        Returns:
+            The summarized text.
+
+        Raises:
+            IntelligenceContentCensoredError: If content is filtered by the provider.
+            IntelligenceSummarizationError: If an unexpected error occurs.
+        """
         _log.info("Starting text summarization (input length: %d chars)", len(text))
 
         provider: Provider | None = None
