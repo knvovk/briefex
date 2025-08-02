@@ -9,13 +9,13 @@ from sqlalchemy import exc as sa_exc
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from briefex.storage import Post
 from briefex.storage.base import PostStorage
 from briefex.storage.exceptions import (
     DuplicateObjectError,
     ObjectNotFoundError,
     StorageException,
 )
+from briefex.storage.models import Post
 from briefex.storage.session import connect
 
 _log = logging.getLogger(__name__)
@@ -181,7 +181,7 @@ class SQLAlchemyPostStorage(PostStorage):
 
     @override
     @connect
-    def get_all(self, filters: dict, *, session: Session) -> list[Post]:
+    def get_all(self, filters: dict | None = None, *, session: Session) -> list[Post]:
         """Retrieve all Posts matching the provided filters.
 
         Args:
@@ -197,6 +197,7 @@ class SQLAlchemyPostStorage(PostStorage):
         _log.debug("Retrieving all posts from storage (filters: %r)", filters)
 
         try:
+            filters = filters or {}
             query = session.query(Post).filter_by(**filters)
             objs = list(query.all())
 

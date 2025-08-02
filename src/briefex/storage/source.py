@@ -7,13 +7,13 @@ from typing import override
 from sqlalchemy import exc as sa_exc
 from sqlalchemy.orm import Session
 
-from briefex.storage import Source
 from briefex.storage.base import SourceStorage
 from briefex.storage.exceptions import (
     DuplicateObjectError,
     ObjectNotFoundError,
     StorageException,
 )
+from briefex.storage.models import Source
 from briefex.storage.session import connect
 
 _log = logging.getLogger(__name__)
@@ -134,7 +134,7 @@ class SQLAlchemySourceStorage(SourceStorage):
 
     @override
     @connect
-    def get_all(self, filters: dict, *, session: Session) -> list[Source]:
+    def get_all(self, filters: dict | None = None, *, session: Session) -> list[Source]:
         """Retrieve all Sources matching the provided filters.
 
         Args:
@@ -150,6 +150,7 @@ class SQLAlchemySourceStorage(SourceStorage):
         _log.debug("Retrieving all sources from storage (filters: %r)", filters)
 
         try:
+            filters = filters or {}
             query = session.query(Source).filter_by(**filters)
             objs = list(query.all())
 

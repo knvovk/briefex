@@ -28,7 +28,7 @@ class SourceStorage(ABC):
         """Retrieve a Source by its primary key."""
 
     @abstractmethod
-    def get_all(self, filters: dict, *, session: Session) -> list[Source]:
+    def get_all(self, filters: dict | None = None, *, session: Session) -> list[Source]:
         """Retrieve all Sources matching given filters."""
 
     @abstractmethod
@@ -60,7 +60,7 @@ class PostStorage(ABC):
         """Retrieve Posts published within the last given number of days."""
 
     @abstractmethod
-    def get_all(self, filters: dict, *, session: Session) -> list[Post]:
+    def get_all(self, filters: dict | None = None, *, session: Session) -> list[Post]:
         """Retrieve all Posts matching given filters."""
 
     @abstractmethod
