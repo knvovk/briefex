@@ -36,7 +36,7 @@ class CrawlerConfig(BaseModel):
     max_retry_delay: float = Field(
         description="Maximum delay between retries in seconds"
     )
-    recent_posts_days: int = Field(description="Recent posts days")
+    lookback_days: int = Field(description="Recent post days")
 
 
 class IntelligenceConfig(BaseModel):
