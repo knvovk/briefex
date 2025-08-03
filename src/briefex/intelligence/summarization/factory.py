@@ -5,10 +5,11 @@ from typing import override
 
 from briefex.intelligence.exceptions import IntelligenceConfigurationError
 from briefex.intelligence.summarization.base import Summarizer, SummarizerFactory
+from briefex.intelligence.summarization.summarizer import DefaultSummarizer
 
 _log = logging.getLogger(__name__)
 
-_default_summarizer_cls: type[Summarizer] | None = None
+_default_summarizer_cls: type[Summarizer] = DefaultSummarizer
 
 
 class DefaultSummarizerFactory(SummarizerFactory):
