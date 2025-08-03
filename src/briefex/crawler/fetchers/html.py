@@ -62,16 +62,18 @@ class HTMLFetcher(Fetcher):
         max_retry_delay: float,
         **kwargs: Any,
     ) -> None:
-        super().__init__(
-            user_agents=user_agents,
-            request_timeout=request_timeout,
-            pool_connections=pool_connections,
-            pool_maxsize=pool_maxsize,
-            max_retries=max_retries,
-            retry_delay=retry_delay,
-            max_retry_delay=max_retry_delay,
-            **kwargs,
+        kwargs.update(
+            {
+                "user_agents": user_agents,
+                "request_timeout": request_timeout,
+                "pool_connections": pool_connections,
+                "pool_maxsize": pool_maxsize,
+                "max_retries": max_retries,
+                "retry_delay": retry_delay,
+                "max_retry_delay": max_retry_delay,
+            }
         )
+        super().__init__(*[], **kwargs)
         self._sessions_for_netloc: dict[str, requests.Session] = {}
         self._user_agents: list[str] = user_agents or DEFAULT_USER_AGENTS
         self._request_timeout = request_timeout
@@ -95,62 +97,88 @@ class HTMLFetcher(Fetcher):
             FetchHttpError: on HTTP status error.
             FetchError: on other fetch failures after retries.
         """
-        _log.info("Fetching HTML content from %s", url)
         utils.validate_url(url)
+        _log.info("Starting fetch of HTML from URL '%s'", url)
 
         attempt = 0
-        resp = None
+        resp: requests.Response | None = None
 
         while True:
-            is_last_attempt = attempt >= self._max_retries
+            is_last = attempt >= self._max_retries
 
             try:
                 resp = self._send_request(url, **kwargs)
             except (FetchTimeoutError, FetchConnectionError, FetchError) as exc:
-                if is_last_attempt:
-                    _log.error("Failed to fetch HTML content: %s", exc)
-                    raise exc
+                if is_last:
+                    _log.error(
+                        "Fetch failed for URL '%s' after %d attempts: %s",
+                        url,
+                        attempt + 1,
+                        exc,
+                    )
+                    raise
+                _log.warning(
+                    "Transient error on attempt %d for URL '%s': %s",
+                    attempt + 1,
+                    url,
+                    exc,
+                )
             else:
-                if resp.status_code not in HTTP_STATUS_FORCE_LIST or is_last_attempt:
+                status = resp.status_code
+                if status not in HTTP_STATUS_FORCE_LIST or is_last:
                     try:
                         resp.raise_for_status()
                         _log.info(
-                            "Successfully fetched %s (status=%d, attempt=%d)",
+                            "Fetched HTML from '%s' successfully "
+                            "(status=%d, attempts=%d)",
                             url,
-                            resp.status_code,
-                            attempt,
+                            status,
+                            attempt + 1,
                         )
                         return resp.content
                     except requests.HTTPError as exc:
-                        _log.error("Failed to fetch HTML content: %s", exc)
+                        _log.error(
+                            "HTTP error fetching '%s' (status=%d): %s",
+                            url,
+                            status,
+                            exc,
+                        )
                         raise FetchHttpError(
-                            issue=f"Failed to fetch HTML content: {exc}",
+                            issue=f"HTTP {status} error for URL '{url}': {exc}",
                             src_url=url,
-                            status_code=resp.status_code,
+                            status_code=status,
                         ) from exc
 
-            if not is_last_attempt:
-                attempt += 1
+            if not is_last:
                 delay = self._get_backoff(resp, attempt)
-                _log.debug("Retrying in %d seconds...", delay)
+                _log.debug(
+                    "Waiting %.2f seconds before retry %d for URL '%s'",
+                    delay,
+                    attempt + 2,
+                    url,
+                )
                 time.sleep(delay)
+                attempt += 1
                 continue
 
+        retries = self._max_retries + 1
         raise FetchError(
-            f"Failed to fetch HTML content from {url} "
-            f"after {self._max_retries} retries."
+            message=f"Failed to fetch HTML from '{url}' after {retries} attempts."
         )
 
     @override
     def close(self) -> None:
         """Close all active HTTP sessions."""
-        for session in self._sessions_for_netloc.values():
-            if session is not None:
-                session.close()
+        _log.debug("Closing all HTTP sessions (%d)", len(self._sessions_for_netloc))
+        for netloc, session in self._sessions_for_netloc.items():
+            _log.debug("Closing session for host '%s'", netloc)
+            session.close()
 
     @property
     def _user_agent(self):
-        return random.choice(self._user_agents)
+        ua = random.choice(self._user_agents)
+        _log.debug("Selected User-Agent: %s", ua)
+        return ua
 
     def _create_session(self) -> requests.Session:
         session = requests.Session()
@@ -165,17 +193,21 @@ class HTMLFetcher(Fetcher):
         session.mount("http://", adapter)
         session.mount("https://", adapter)
 
+        _log.debug(
+            "Created new HTTP session (pool_connections=%d, pool_maxsize=%d)",
+            self._pool_connections,
+            self._pool_maxsize,
+        )
         return session
 
     def _get_session(self, url: str | None = None) -> requests.Session:
         if not url:
+            _log.debug("No URL provided; creating temporary session")
             return self._create_session()
 
-        parsed_url = urllib.parse.urlsplit(url)
-        netloc = parsed_url.netloc
-
+        netloc = urllib.parse.urlsplit(url).netloc
         if netloc not in self._sessions_for_netloc:
-            _log.debug("Creating new session for %s", netloc)
+            _log.info("Opening new session for host '%s'", netloc)
             self._sessions_for_netloc[netloc] = self._create_session()
 
         return self._sessions_for_netloc[netloc]
@@ -188,29 +220,37 @@ class HTMLFetcher(Fetcher):
             return session.send(prepared_request, timeout=self._request_timeout)
 
         except requests.exceptions.Timeout as exc:
-            raise FetchTimeoutError(
-                src_url=url,
-                timeout=self._request_timeout,
-            ) from exc
+            _log.warning(
+                "Request timeout after %.2f seconds for URL '%s'",
+                self._request_timeout,
+                url,
+            )
+            raise FetchTimeoutError(src_url=url, timeout=self._request_timeout) from exc
 
         except requests.exceptions.ConnectionError as exc:
-            raise FetchConnectionError(
-                issue=str(exc),
-                src_url=url,
-            ) from exc
+            _log.warning("Connection error for URL '%s': %s", url, exc)
+            raise FetchConnectionError(issue=str(exc), src_url=url) from exc
 
         except requests.exceptions.RequestException as exc:
-            raise FetchError(
-                message=str(exc),
-                details={
-                    "src_url": url,
-                },
-            ) from exc
+            _log.error("RequestException for URL '%s': %s", url, exc)
+            raise FetchError(message=str(exc), details={"src_url": url}) from exc
 
-    def _get_backoff(self, response: requests.Response, attempt: int) -> float:
+    def _get_backoff(self, response: requests.Response | None, attempt: int) -> float:
         if response is not None:
-            retry_after = response.headers.get("retry-after", "")
+            retry_after = response.headers.get("retry-after")
             if retry_after:
-                return float(retry_after)
+                delay = float(retry_after)
+                _log.debug(
+                    "Using 'Retry-After' header for backoff: %.2f seconds", delay
+                )
+                return delay
+
         delay = self._retry_delay * (2**attempt)
-        return min(delay, self._max_retry_delay)
+        delay = min(delay, self._max_retry_delay)
+
+        _log.debug(
+            "Calculated exponential backoff: %.2f seconds (attempt=%d)",
+            delay,
+            attempt + 1,
+        )
+        return delay

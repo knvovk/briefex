@@ -28,22 +28,33 @@ class DefaultParserFactory(ParserFactory):
             CrawlerConfigurationError: If no parser is registered for src.code
                 or if instantiation fails.
         """
-        _log.debug("Initializing parser for %s", src)
+        _log.debug("Selecting parser for source code '%s'", src.code_name)
         if src.code_name not in parser_registry:
+            message = f"No parser registered for source code '{src.code_name}'"
+            _log.error(message)
             raise CrawlerConfigurationError(
-                issue=f"No parser registered for {src.code_name}",
+                issue=message,
                 stage="parser_selection",
             )
 
         parser_cls = parser_registry[src.code_name]
         try:
             instance = parser_cls(src)
-            _log.info("%s initialized for %s", parser_cls.__name__, src)
+            _log.info(
+                "Parser '%s' instantiated successfully for source code '%s'",
+                parser_cls.__name__,
+                src.code_name,
+            )
             return instance
 
         except Exception as exc:
-            _log.error("Unexpected error during parser instantiation: %s", exc)
+            _log.error(
+                "Failed to instantiate parser '%s' for source code '%s': %s",
+                parser_cls.__name__,
+                src.code_name,
+                exc,
+            )
             raise CrawlerConfigurationError(
-                issue=f"Parser instantiation failed for {parser_cls.__name__}: {exc}",
+                issue=f"Instantiation error in '{parser_cls.__name__}': {exc}",
                 stage="parser_instantiation",
             ) from exc

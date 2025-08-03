@@ -27,7 +27,7 @@ class DefaultCrawler(Crawler):
         Raises:
             CrawlerException: If an unexpected error occurs during crawl.
         """
-        _log.info("Starting crawl for source %s", src)
+        _log.info("Starting crawl for source '%s'", src.url)
 
         try:
             with closing(self._fetcher_factory.create(src.type)) as fetcher:
@@ -36,45 +36,52 @@ class DefaultCrawler(Crawler):
                 drafts = parser.parse_many(main_page)
 
                 posts: list[Post] = []
-                successful, failed = 0, 0
+                successful = 0
+                failed = 0
+                total = len(drafts)
+
                 for idx, draft in enumerate(drafts, start=1):
-                    _log.debug("Processing draft (%d/%d)", idx, len(drafts))
+                    _log.debug(
+                        "Processing draft %d/%d for source '%s'",
+                        idx,
+                        total,
+                        src.url,
+                    )
                     try:
                         draft_page = fetcher.fetch(draft.canonical_url)
                         draft_data = parser.parse(draft_page)
-
                         draft.merge(draft_data)
                         posts.append(draft.to_post())
 
                         successful += 1
                         _log.debug(
-                            "Successfully processed draft (%d/%d)",
+                            "Draft %d/%d processed successfully",
                             idx,
-                            len(drafts),
+                            total,
                         )
                     except Exception as exc:
                         failed += 1
-                        _log.error(
-                            "Failed to process draft (%d/%d): %s",
+                        _log.warning(
+                            "Failed to process draft %d/%d for source '%s': %s",
                             idx,
-                            len(drafts),
+                            total,
+                            src.url,
                             exc,
                         )
 
                 _log.info(
-                    "Finished crawl for source %s (total=%s, successful=%s, failed=%s)",
-                    src,
-                    len(drafts),
+                    "Finished crawl for source '%s': "
+                    "total=%d, successful=%d, failed=%d",
+                    src.url,
+                    total,
                     successful,
                     failed,
                 )
                 return posts
 
         except Exception as exc:
-            _log.error("Unexpected error during crawl: %s", exc)
+            _log.error("Crawl failed for source '%s': %s", src.url, exc)
             raise CrawlerException(
-                message=f"Unexpected error during crawl: {exc}",
-                details={
-                    "src": src,
-                },
+                message=f"Crawl failed for source '{src.url}': {exc}",
+                details={"src_url": src.url},
             ) from exc

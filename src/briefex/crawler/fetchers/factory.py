@@ -28,22 +28,32 @@ class DefaultFetcherFactory(FetcherFactory):
             CrawlerConfigurationError: If no fetcher is registered for src_type
                 or if instantiation fails.
         """
-        _log.debug("Initializing fetcher for %s", src_type)
+        _log.debug("Selecting fetcher for source type '%s'", src_type)
         if src_type not in fetcher_registry:
+            message = f"No fetcher registered for source type '{src_type}'"
+            _log.error(message)
             raise CrawlerConfigurationError(
-                issue=f"No fetcher registered for {src_type}",
+                issue=message,
                 stage="fetcher_selection",
             )
 
         fetcher_cls = fetcher_registry[src_type]
         try:
             instance = fetcher_cls(*self._fetcher_args, **self._fetcher_kwargs)
-            _log.info("%s initialized for %s", fetcher_cls.__name__, src_type)
+            _log.info(
+                "Fetcher '%s' instantiated successfully for source type '%s'",
+                fetcher_cls.__name__,
+                src_type,
+            )
             return instance
 
         except Exception as exc:
-            _log.error("Unexpected error during fetcher instantiation: %s", exc)
+            _log.error(
+                "Failed to instantiate fetcher '%s': %s",
+                fetcher_cls.__name__,
+                exc,
+            )
             raise CrawlerConfigurationError(
-                issue=f"Fetcher instantiation failed for {fetcher_cls.__name__}: {exc}",
+                issue=f"Instantiation error in '{fetcher_cls.__name__}': {exc}",
                 stage="fetcher_instantiation",
             ) from exc

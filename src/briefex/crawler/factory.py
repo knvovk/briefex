@@ -23,19 +23,17 @@ class DefaultCrawlerFactory(CrawlerFactory):
         Raises:
             CrawlerConfigurationError: If crawler instantiation fails.
         """
-        _log.debug("Initializing crawler by default: %s", _default_crawler_cls.__name__)
+        class_name = _default_crawler_cls.__name__
+        _log.debug("Instantiating default crawler class '%s'", class_name)
+
         try:
             instance = _default_crawler_cls(*self._crawler_args, **self._crawler_kwargs)
-            _log.info(
-                "%s initialized as default crawler",
-                _default_crawler_cls.__name__,
-            )
+            _log.info("Crawler '%s' instantiated successfully", class_name)
             return instance
 
         except Exception as exc:
-            _log.error("Unexpected error during crawler initialization: %s", exc)
-            cls = _default_crawler_cls.__name__
+            _log.error("Failed to instantiate crawler '%s': %s", class_name, exc)
             raise CrawlerConfigurationError(
-                issue=f"Crawler instantiation failed for {cls}: {exc}",
+                issue=f"Crawler instantiation failed for '{class_name}': {exc}",
                 stage="crawler_instantiation",
             ) from exc

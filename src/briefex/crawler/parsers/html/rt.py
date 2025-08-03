@@ -34,10 +34,17 @@ class RT(HTMLParser):
 
     @override
     def _find_post_cards(self, soup: BeautifulSoup) -> list[Tag]:
-        return soup.find_all("div", class_="listing__card")
+        cards = soup.find_all("div", class_="listing__card")
+        _log.info(
+            "Found %d post cards for source '%s'",
+            len(cards),
+            self._src.url,
+        )
+        return cards
 
     @override
     def _parse_post_card(self, card: Tag) -> PostDraft:
+        _log.debug("Parsing post card element for source '%s'", self._src.url)
         heading_div = utils.find_required_tag(
             parent=card,
             name="div",
@@ -53,6 +60,7 @@ class RT(HTMLParser):
 
         title = utils.clean_text(title_link.get_text())
         if not title.strip():
+            _log.error("Empty title in post card for source '%s'", self._src.url)
             raise ParseContentError(
                 issue="Post title is empty",
                 src_url=self._src.url,
@@ -64,20 +72,32 @@ class RT(HTMLParser):
             netloc=utils.netloc(self._src.url),
         )
         if not relative_url.strip():
+            _log.error("Empty URL in post card for source '%s'", self._src.url)
             raise ParseContentError(
                 issue="Post URL is empty",
                 src_url=self._src.url,
             )
 
         absolute_url = urllib.parse.urljoin(self._src.url, relative_url)
+        _log.debug("Post card parsed: title='%s', url='%s'", title, absolute_url)
         return PostDraft(title=title, canonical_url=absolute_url)
 
     @override
     def _find_post_article(self, soup: BeautifulSoup) -> Tag:
-        return soup.find("div", class_="article_article-page")
+        article = soup.find("div", class_="article_article-page")
+        if article is None:
+            _log.error(
+                "Article element not found using selector '%s' for source '%s'",
+                self._article_selector,
+                self._src.url,
+            )
+        else:
+            _log.info("Article element found for source '%s'", self._src.url)
+        return article
 
     @override
     def _parse_post_article(self, article: Tag) -> PostDraft:
+        _log.debug("Parsing article content for source '%s'", self._src.url)
         article_div = utils.find_required_tag(
             parent=article,
             name="div",
@@ -86,11 +106,11 @@ class RT(HTMLParser):
         )
 
         paragraphs = article_div.find_all("p")
-        if paragraphs:
-            raw_text = "\n".join(p.get_text(strip=True) for p in paragraphs)
-        else:
-            raw_text = article_div.get_text(separator=" ", strip=True)
-
+        raw_text = (
+            "\n".join(p.get_text(strip=True) for p in paragraphs)
+            if paragraphs
+            else article_div.get_text(separator=" ", strip=True)
+        )
         content = utils.clean_text(raw_text)
 
         try:
@@ -107,8 +127,23 @@ class RT(HTMLParser):
             )
             published_at = datetime.strptime(published_at_str, "%Y-%m-%d %H:%M")
 
+            _log.debug(
+                "Parsed publication date '%s' for source '%s'",
+                published_at_str,
+                self._src.url,
+            )
+
         except (ParseError, ValueError) as exc:
-            _log.error("Failed to parse article pub date: %s", exc)
+            _log.warning(
+                "Could not parse publication date for source '%s': %s; using epoch",
+                self._src.url,
+                exc,
+            )
             published_at = TIME_1970_01_01
 
+        _log.info(
+            "Article parsed (length=%d chars) for source '%s'",
+            len(content),
+            self._src.url,
+        )
         return PostDraft(content=content, published_at=published_at)

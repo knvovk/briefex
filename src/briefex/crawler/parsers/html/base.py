@@ -35,7 +35,7 @@ class HTMLParser(Parser, ABC):
             ParseContentError: If the HTML content is empty or invalid.
             ParseError: On unexpected parsing errors.
         """
-        _log.info("Parsing single article for %s", self._src)
+        _log.info("Parsing single article for source '%s'", self._src.url)
 
         try:
             soup = self._get_soup(data)
@@ -43,10 +43,9 @@ class HTMLParser(Parser, ABC):
             article = self._find_post_article(soup)
             if not article:
                 selector = self._article_selector
-                raise ParseStructureError(
-                    issue=f"No article found with selector '{selector}'",
-                    src_url=self._src.url,
-                )
+                message = f"No article found using selector '{selector}'"
+                _log.error("%s for URL '%s'", message, self._src.url)
+                raise ParseStructureError(issue=message, src_url=self._src.url)
 
             return self._parse_post_article(article)
 
@@ -54,9 +53,13 @@ class HTMLParser(Parser, ABC):
             raise
 
         except Exception as exc:
-            _log.error("Unexpected error during parsing: %s", exc)
+            _log.error(
+                "Parsing failed unexpectedly for URL '%s': %s",
+                self._src.url,
+                exc,
+            )
             raise ParseError(
-                message=f"Unexpected error during parsing: {exc}",
+                message=f"Unexpected parsing error: {exc}",
                 details={"src": self._src},
             ) from exc
 
@@ -76,7 +79,7 @@ class HTMLParser(Parser, ABC):
             ParseContentError: If the HTML content is empty or invalid.
             ParseError: On unexpected parsing errors.
         """
-        _log.info("Parsing multiple articles for %s", self._src)
+        _log.info("Parsing multiple articles for source '%s'", self._src.url)
 
         try:
             soup = self._get_soup(data)
@@ -84,10 +87,9 @@ class HTMLParser(Parser, ABC):
             post_cards = self._find_post_cards(soup)
             if not post_cards:
                 selector = self._card_selector
-                raise ParseStructureError(
-                    issue=f"No post cards found with selector '{selector}'",
-                    src_url=self._src.url,
-                )
+                message = f"No post cards found using selector '{selector}'"
+                _log.error("%s for URL '%s'", message, self._src.url)
+                raise ParseStructureError(issue=message, src_url=self._src.url)
 
             return self._parse_post_card_list(post_cards)
 
@@ -95,9 +97,13 @@ class HTMLParser(Parser, ABC):
             raise
 
         except Exception as exc:
-            _log.error("Unexpected error during parsing: %s", exc)
+            _log.error(
+                "Parsing of multiple articles failed unexpectedly for URL '%s': %s",
+                self._src.url,
+                exc,
+            )
             raise ParseError(
-                message=f"Unexpected error during parsing: {exc}",
+                message=f"Unexpected parsing error: {exc}",
                 details={"src": self._src},
             ) from exc
 
@@ -134,54 +140,52 @@ class HTMLParser(Parser, ABC):
 
     def _get_soup(self, data: bytes) -> BeautifulSoup:
         if not data:
-            raise ParseContentError(
-                issue="HTML content is empty",
-                src_url=self._src.url,
-            )
+            message = "HTML content is empty"
+            _log.error("%s for source '%s'", message, self._src.url)
+            raise ParseContentError(issue=message, src_url=self._src.url)
 
         try:
             html = data.decode(encoding=self._encoding, errors="replace")
             if not html.strip():
-                raise ParseContentError(
-                    issue="HTML content is empty",
-                    src_url=self._src.url,
-                )
+                message = "HTML content is empty after decoding"
+                _log.error("%s for source '%s'", message, self._src.url)
+                raise ParseContentError(issue=message, src_url=self._src.url)
 
             soup = BeautifulSoup(html, features="lxml")
             if not soup:
-                raise ParseContentError(
-                    issue="HTML content is empty",
-                    src_url=self._src.url,
-                )
+                message = "Failed to create BeautifulSoup object"
+                _log.error("%s for source '%s'", message, self._src.url)
+                raise ParseContentError(issue=message, src_url=self._src.url)
 
             return soup
 
         except UnicodeDecodeError as exc:
-            raise ParseContentError(
-                issue=f"HTML content is invalid: {exc}",
-                src_url=self._src.url,
-            )
+            message = f"HTML decoding error: {exc}"
+            _log.error("%s for source '%s'", message, self._src.url)
+            raise ParseContentError(issue=message, src_url=self._src.url)
 
         except Exception as exc:
-            _log.error("Failed to parse HTML content: %s", exc)
+            _log.error("HTML parsing error for source '%s': %s", self._src.url, exc)
             raise ParseContentError(
-                issue=f"HTML content is invalid: {exc}",
+                issue=f"Invalid HTML content: {exc}",
                 src_url=self._src.url,
-            )
+            ) from exc
 
     def _parse_post_card_list(self, post_cards: list[Tag]) -> list[PostDraft]:
         posts: list[PostDraft] = []
-        for idx, post_card in enumerate(post_cards):
+        total = len(post_cards)
+        for idx, post_card in enumerate(post_cards, start=1):
             try:
                 post = self._parse_post_card(post_card)
                 post.source = self._src if not post.source else post.source
                 posts.append(post)
+                _log.debug("Parsed post card %d/%d successfully", idx, total)
             except Exception as exc:
                 _log.error(
-                    "Failed to parse post card %d/%d: %s",
+                    "Failed to parse post card %d/%d for source '%s': %s",
                     idx,
-                    len(post_cards),
+                    total,
+                    self._src.url,
                     exc,
                 )
-                continue
         return posts

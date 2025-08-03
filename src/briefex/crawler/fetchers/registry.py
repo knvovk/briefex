@@ -24,13 +24,19 @@ class FetcherRegistry(dict[SourceType, type[Fetcher]]):
             CrawlerConfigurationError: If cls is not a subclass of Fetcher.
         """
         if not isinstance(cls, type) or not issubclass(cls, Fetcher):
+            message = f"Cannot register '{cls.__name__}': not a Fetcher subclass"
+            _log.error(message)
             raise CrawlerConfigurationError(
-                issue=f"Class `{cls.__name__}` must be a subclass of Fetcher",
+                issue=message,
                 stage="fetcher_registration",
             )
 
         self[src_type] = cls
-        _log.debug("%s registered for %s", cls.__name__, src_type)
+        _log.debug(
+            "Registered fetcher '%s' for source type '%s'",
+            cls.__name__,
+            src_type,
+        )
 
 
 fetcher_registry = FetcherRegistry()
@@ -58,15 +64,32 @@ def register(src_type: SourceType) -> Callable[[type[Fetcher]], type[Fetcher]]:
         Raises:
             CrawlerConfigurationError: If registration fails.
         """
+        _log.debug(
+            "Attempting to register fetcher '%s' for source type '%s'",
+            cls.__name__,
+            src_type,
+        )
         try:
             fetcher_registry.register(src_type, cls)
+            _log.info(
+                "Fetcher '%s' successfully registered for source type '%s'",
+                cls.__name__,
+                src_type,
+            )
             return cls
+
         except CrawlerConfigurationError:
             raise
+
         except Exception as exc:
-            _log.error("Unexpected error during fetcher registration: %s", exc)
+            _log.error(
+                "Unexpected error registering fetcher '%s' for source type '%s': %s",
+                cls.__name__,
+                src_type,
+                exc,
+            )
             raise CrawlerConfigurationError(
-                issue=f"`{cls.__name__}` registration failed",
+                issue=f"Registration failed for '{cls.__name__}'",
                 stage="fetcher_registration",
             ) from exc
 

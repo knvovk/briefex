@@ -15,15 +15,19 @@ class RSSFetcher(Fetcher):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        _log.debug("%s initialized (not implemented)", self.__class__.__name__)
+        _log.info("RSSFetcher initialized as a stub (no real fetching)")
 
     @override
     def fetch(self, url: str, **kwargs: Any) -> bytes:
         """Attempt to fetch RSS content (stub returns empty bytes)."""
-        _log.warning("%s not implemented", self.__class__.__name__)
+        _log.warning(
+            "RSSFetcher.fetch called for URL '%s' but not implemented; "
+            "returning empty bytes",
+            url,
+        )
         return b""
 
     @override
     def close(self) -> None:
         """Close the RSSFetcher (stub, no resources to release)."""
-        _log.warning("%s not implemented", self.__class__.__name__)
+        _log.info("RSSFetcher.close called (no resources to release in stub)")

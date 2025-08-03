@@ -24,13 +24,19 @@ class ParserRegistry(dict[SourceCode, type[Parser]]):
             CrawlerConfigurationError: If cls is not a subclass of Parser.
         """
         if not isinstance(cls, type) or not issubclass(cls, Parser):
+            message = f"Cannot register '{cls.__name__}': not a Parser subclass"
+            _log.error(message)
             raise CrawlerConfigurationError(
-                issue=f"Class `{cls.__name__}` must be a subclass of Parser",
+                issue=message,
                 stage="parser_registration",
             )
 
         self[code] = cls
-        _log.debug("%s registered for %s", cls.__name__, code)
+        _log.info(
+            "Registered parser '%s' for source code '%s'",
+            cls.__name__,
+            code,
+        )
 
 
 parser_registry = ParserRegistry()
@@ -58,15 +64,32 @@ def register(code: SourceCode) -> Callable[[type[Parser]], type[Parser]]:
         Raises:
             CrawlerConfigurationError: If registration fails.
         """
+        _log.debug(
+            "Attempting to register parser '%s' for source code '%s'",
+            cls.__name__,
+            code,
+        )
         try:
             parser_registry.register(code, cls)
+            _log.info(
+                "Parser '%s' successfully registered for source code '%s'",
+                cls.__name__,
+                code,
+            )
             return cls
+
         except CrawlerConfigurationError:
             raise
+
         except Exception as exc:
-            _log.error("Unexpected error during parser registration: %s", exc)
+            _log.error(
+                "Unexpected error registering parser '%s' for source code '%s': %s",
+                cls.__name__,
+                code,
+                exc,
+            )
             raise CrawlerConfigurationError(
-                issue=f"`{cls.__name__}` registration failed",
+                issue=f"Registration failed for '{cls.__name__}'",
                 stage="parser_registration",
             ) from exc
 

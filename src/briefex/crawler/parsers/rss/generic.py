@@ -16,7 +16,10 @@ class GenericRSSParser(Parser):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        _log.debug("%s initialized (not implemented)", self.__class__.__name__)
+        _log.info(
+            "GenericRSSParser initialized as a stub for source '%s'",
+            getattr(self, "_src", None) and self._src.url or "<unknown>",
+        )
 
     @override
     def parse(self, data: bytes) -> PostDraft:
@@ -28,7 +31,11 @@ class GenericRSSParser(Parser):
         Returns:
             An empty PostDraft instance.
         """
-        _log.warning("%s not implemented", self.__class__.__name__)
+        _log.warning(
+            "GenericRSSParser.parse called for source '%s' but not implemented; "
+            "returning empty PostDraft",
+            getattr(self, "_src", None) and self._src.url or "<unknown>",
+        )
         return PostDraft()
 
     @override
@@ -41,5 +48,9 @@ class GenericRSSParser(Parser):
         Returns:
             An empty list.
         """
-        _log.warning("%s not implemented", self.__class__.__name__)
+        _log.warning(
+            "GenericRSSParser.parse_many called for source '%s' but not implemented; "
+            "returning empty list",
+            getattr(self, "_src", None) and self._src.url or "<unknown>",
+        )
         return []
