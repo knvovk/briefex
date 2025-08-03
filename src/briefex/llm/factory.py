@@ -32,9 +32,8 @@ class DefaultProviderFactory(ProviderFactory):
 
         provider_cls: type[Provider] | None = None
         for cls, models in provider_registry.items():
-            for model in models:
-                if model in models:
-                    provider_cls = cls
+            if model in models:
+                provider_cls = cls
 
         if provider_cls is None:
             raise LLMConfigurationError(
@@ -43,7 +42,7 @@ class DefaultProviderFactory(ProviderFactory):
             )
 
         try:
-            instance = provider_cls(model)
+            instance = provider_cls(*self._provider_args, **self._provider_kwargs)
             _log.info("%s initialized for %s", provider_cls.__name__, model)
             return instance
 

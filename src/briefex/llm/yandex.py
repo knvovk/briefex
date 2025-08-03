@@ -67,11 +67,13 @@ class YandexGPT(Provider):
         yandex_gpt_api_key: str,
         **kwargs,
     ) -> None:
-        super().__init__(
-            yandex_gpt_folder_id,
-            yandex_gpt_api_key,
-            **kwargs,
+        kwargs.update(
+            {
+                "yandex_gpt_folder_id": yandex_gpt_folder_id,
+                "yandex_gpt_api_key": yandex_gpt_api_key,
+            }
         )
+        super().__init__(*[], **kwargs)
         self._folder_id = yandex_gpt_folder_id
         self._api_key = yandex_gpt_api_key
         self._client = self._get_configured_client(
@@ -116,7 +118,7 @@ class YandexGPT(Provider):
         try:
             return YCloudML(
                 folder_id=folder_id,
-                api_key=APIKeyAuth(api_key),
+                auth=APIKeyAuth(api_key),
             )
 
         except Exception as exc:

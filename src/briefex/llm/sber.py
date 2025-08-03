@@ -71,14 +71,16 @@ class GigaChat(Provider):
         gigachat_timeout: int = 30,
         **kwargs,
     ) -> None:
-        super().__init__(
-            gigachat_credentials,
-            gigachat_model,
-            gigachat_scope,
-            gigachat_verify_ssl_certs,
-            gigachat_timeout,
-            **kwargs,
+        kwargs.update(
+            {
+                "gigachat_credentials": gigachat_credentials,
+                "gigachat_model": gigachat_model,
+                "gigachat_scope": gigachat_scope,
+                "gigachat_verify_ssl_certs": gigachat_verify_ssl_certs,
+                "gigachat_timeout": gigachat_timeout,
+            }
         )
+        super().__init__(*[], **kwargs)
         self._credentials = gigachat_credentials
         self._model = gigachat_model
         self._scope = gigachat_scope
