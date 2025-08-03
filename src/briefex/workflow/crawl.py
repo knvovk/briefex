@@ -50,8 +50,8 @@ class CrawlWorkflow(Workflow):
             recent_post_urls = self._fetch_recent_post_urls()
             fresh_posts_by_source = self._crawl_all_sources(recent_post_urls)
             self._persist_posts(fresh_posts_by_source)
-        except Exception as exc:
-            _log.error("Crawl workflow encountered an unexpected error", exc_info=exc)
+        except Exception:
+            _log.exception("Crawl workflow failed unexpectedly")
             raise
 
         _log.info("Crawl workflow completed successfully")
