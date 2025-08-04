@@ -117,7 +117,7 @@ class DefaultSummarizer(Summarizer):
             ),
             messages=[
                 ChatCompletionMessage(
-                    role=Role.ASSISTANT,
+                    role=Role.SYSTEM,
                     content=self._prompt,
                 ),
                 ChatCompletionMessage(

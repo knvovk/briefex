@@ -97,7 +97,7 @@ class CrawlWorkflow(Workflow):
                     new_posts[src] = unseen_posts
                     _log.info("Source '%s' collected %d posts", src, len(unseen_posts))
                 else:
-                    _log.info("Source %s now new posts", src)
+                    _log.info("Source '%s' has no new posts", src)
 
             return new_posts
 
@@ -124,7 +124,12 @@ class CrawlWorkflow(Workflow):
                 try:
                     self._post_storage.add(post)
                 except Exception as exc:
-                    _log.error("Error persisting post [%d/%d]: %s", exc)
+                    _log.error(
+                        "Error persisting post [%d/%d]: %s",
+                        idx,
+                        len(storage_posts),
+                        exc,
+                    )
                     continue
 
             _log.info("Persisted %d posts for source %s", len(posts), src)
