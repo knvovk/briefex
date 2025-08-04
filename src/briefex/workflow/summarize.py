@@ -84,7 +84,7 @@ class SummarizeWorkflow(Workflow):
         try:
             summary_text = self._summarizer.summarize(post.content)
             _log.debug(
-                "Post %s summarized (output length: %d chars)",
+                "Post (id=%s) summarized (output length: %d chars)",
                 post.id,
                 len(summary_text),
             )
@@ -92,7 +92,7 @@ class SummarizeWorkflow(Workflow):
 
         except IntelligenceException as exc:
             _log.warning(
-                "%s while summarizing post id=%s: %s",
+                "%s while summarizing post (id=%s): %s",
                 exc.__class__.__name__,
                 post.id,
                 exc,
@@ -100,7 +100,7 @@ class SummarizeWorkflow(Workflow):
             return {"status": self._status_for_exception(exc)}
 
         except Exception as exc:
-            _log.error("Unexpected error for post id=%s: %s", post.id, exc)
+            _log.error("Unexpected error for post (id=%s): %s", post.id, exc)
             return {"status": PostStatus.SUMMARY_RETRY}
 
     def _persist_updates(self, update_map: dict[UUID, Mapping[str, object]]) -> None:
@@ -114,12 +114,12 @@ class SummarizeWorkflow(Workflow):
             try:
                 self._post_storage.update(post_id, payload)
                 _log.debug(
-                    "Updated post id=%s to status %r",
+                    "Updated post (id=%s) to status %r",
                     post_id,
                     payload["status"],
                 )
             except Exception as exc:  # pragma: no cover
-                _log.error("Failed to update post id=%s: %s", post_id, exc)
+                _log.error("Failed to update post (id=%s): %s", post_id, exc)
                 continue
 
     @staticmethod

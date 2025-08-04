@@ -95,7 +95,7 @@ class CrawlWorkflow(Workflow):
 
                 if unseen_posts:
                     new_posts[src] = unseen_posts
-                    _log.info("Source %s collected %d posts", src, len(unseen_posts))
+                    _log.info("Source '%s' collected %d posts", src, len(unseen_posts))
                 else:
                     _log.info("Source %s now new posts", src)
 
@@ -138,13 +138,16 @@ class CrawlWorkflow(Workflow):
         for post in posts:
             if not post.content:
                 _log.warning(
-                    "Excluding post with empty content: %s",
+                    "Remove post with empty content: %s",
                     post.canonical_url,
                 )
                 continue
 
             if post.canonical_url in seen:
-                _log.warning("Excluding duplicate post URL: %s", post.canonical_url)
+                _log.warning(
+                    "Remove duplicate post with URL: %s",
+                    post.canonical_url,
+                )
                 continue
 
             seen.add(post.canonical_url)
@@ -158,7 +161,16 @@ class CrawlWorkflow(Workflow):
         recent_post_urls: set[str],
     ) -> list[CrawlerPost]:
         """Exclude posts whose URLs are in the recent_post_urls set."""
-        return [post for post in posts if post.canonical_url not in recent_post_urls]
+        result: list[CrawlerPost] = []
+        for post in posts:
+            if post.canonical_url not in recent_post_urls:
+                result.append(post)
+            else:
+                _log.debug(
+                    "Exclude post with URL '%s' already stored",
+                    post.canonical_url,
+                )
+        return result
 
     @staticmethod
     def _to_crawler_source(src: StorageSource) -> CrawlerSource:
