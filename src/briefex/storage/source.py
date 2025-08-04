@@ -162,7 +162,13 @@ class SQLAlchemySourceStorage(SourceStorage):
         """
         _log.debug("Updating Source (pk=%s) with data: %r", pk, data)
         try:
-            instance = self.get(pk, session=session)
+            instance = session.get(Source, pk)
+            if instance is None:
+                _log.warning("No Source found with pk=%s", pk)
+                raise ObjectNotFoundError(
+                    cls=Source.__name__,
+                    details={"pk": pk},
+                )
             for key, value in data.items():
                 setattr(instance, key, value)
             _log.info("Source updated (pk=%s)", pk)
@@ -191,7 +197,13 @@ class SQLAlchemySourceStorage(SourceStorage):
         """
         _log.debug("Deleting Source (pk=%s)", pk)
         try:
-            instance = self.get(pk, session=session)
+            instance = session.get(Source, pk)
+            if instance is None:
+                _log.warning("No Source found with pk=%s", pk)
+                raise ObjectNotFoundError(
+                    cls=Source.__name__,
+                    details={"pk": pk},
+                )
             session.delete(instance)
             _log.info("Source deleted (pk=%s)", pk)
         except ObjectNotFoundError:

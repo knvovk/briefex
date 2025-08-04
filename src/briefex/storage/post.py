@@ -205,7 +205,13 @@ class SQLAlchemyPostStorage(PostStorage):
         """
         _log.debug("Updating Post (pk=%s) with data: %r", pk, data)
         try:
-            instance = self.get(pk, session=session)
+            instance = session.get(Post, pk)
+            if instance is None:
+                _log.warning("No Post found with pk=%s", pk)
+                raise ObjectNotFoundError(
+                    cls=Post.__name__,
+                    details={"pk": pk},
+                )
             for key, value in data.items():
                 setattr(instance, key, value)
             _log.info("Post updated (pk=%s)", pk)
@@ -234,7 +240,13 @@ class SQLAlchemyPostStorage(PostStorage):
         """
         _log.debug("Deleting Post (pk=%s)", pk)
         try:
-            instance = self.get(pk, session=session)
+            instance = session.get(Post, pk)
+            if instance is None:
+                _log.warning("No Post found with pk=%s", pk)
+                raise ObjectNotFoundError(
+                    cls=Post.__name__,
+                    details={"pk": pk},
+                )
             session.delete(instance)
             _log.info("Post deleted (pk=%s)", pk)
         except ObjectNotFoundError:
