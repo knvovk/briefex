@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from briefex.crawler.fetchers import FetcherFactory
-from briefex.crawler.models import Post, Source
-from briefex.crawler.parsers import ParserFactory
+if TYPE_CHECKING:
+    from briefex.crawler.fetchers import FetcherFactory
+    from briefex.crawler.models import Post, Source
+    from briefex.crawler.parsers import ParserFactory
 
 _log = logging.getLogger(__name__)
 

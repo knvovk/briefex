@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from briefex.llm.models import ChatCompletionRequest, ChatCompletionResponse, Model
+if TYPE_CHECKING:
+    from briefex.llm.models import ChatCompletionRequest, ChatCompletionResponse, Model
 
 _log = logging.getLogger(__name__)
 

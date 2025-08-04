@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import logging
-from typing import override
+from typing import TYPE_CHECKING, override
 
 from briefex.crawler.exceptions import CrawlerConfigurationError
 from briefex.crawler.fetchers.base import Fetcher, FetcherFactory
 from briefex.crawler.fetchers.registry import fetcher_registry
-from briefex.crawler.models import SourceType
+
+if TYPE_CHECKING:
+    from briefex.crawler.models import SourceType
 
 _log = logging.getLogger(__name__)
 

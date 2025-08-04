@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
-from typing import Any, override
-from uuid import UUID
+from typing import TYPE_CHECKING, Any, override
 
-from briefex.intelligence import IntelligenceException
-from briefex.intelligence.summarization import Summarizer
+from briefex.intelligence import IntelligenceError
 from briefex.storage import Post, PostStatus, PostStorage
 from briefex.workflow.base import Workflow
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+    from uuid import UUID
+
+    from briefex.intelligence.summarization import Summarizer
 
 _log = logging.getLogger(__name__)
 
@@ -90,7 +93,7 @@ class SummarizeWorkflow(Workflow):
             )
             return {"status": PostStatus.SUMMARY_READY, "summary": summary_text}
 
-        except IntelligenceException as exc:
+        except IntelligenceError as exc:
             _log.warning(
                 "%s while summarizing post (id=%s): %s",
                 exc.__class__.__name__,
@@ -123,7 +126,7 @@ class SummarizeWorkflow(Workflow):
                 continue
 
     @staticmethod
-    def _status_for_exception(exc: IntelligenceException) -> PostStatus:
+    def _status_for_exception(exc: IntelligenceError) -> PostStatus:
         reason = str(exc.details.get("reason", exc.message)).lower()
         if any(key in reason for key in ("filter", "censor")):
             return PostStatus.SUMMARY_CENSORED

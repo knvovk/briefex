@@ -3,15 +3,16 @@ from __future__ import annotations
 import logging
 import urllib.parse
 from datetime import datetime
-from typing import override
-
-from bs4 import BeautifulSoup, Tag
+from typing import TYPE_CHECKING, override
 
 from briefex.crawler.exceptions import ParseContentError, ParseError
 from briefex.crawler.models import TIME_1970_01_01, PostDraft
 from briefex.crawler.parsers.html import utils
 from briefex.crawler.parsers.html.base import HTMLParser
 from briefex.crawler.parsers.registry import register
+
+if TYPE_CHECKING:
+    from bs4 import BeautifulSoup, Tag
 
 _log = logging.getLogger(__name__)
 

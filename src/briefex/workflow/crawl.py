@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, override
-from uuid import UUID
+from typing import TYPE_CHECKING, Any, override
 
 from briefex.crawler import Crawler
 from briefex.crawler import Post as CrawlerPost
@@ -11,6 +10,9 @@ from briefex.storage import Post as StoragePost
 from briefex.storage import PostStorage, SourceStorage
 from briefex.storage import Source as StorageSource
 from briefex.workflow.base import Workflow
+
+if TYPE_CHECKING:
+    from uuid import UUID
 
 _log = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-class LLMException(Exception):
+class LLMError(Exception):
     """Base exception for LLM operations with message and optional details."""
 
     def __init__(self, message: str, details: dict | None = None) -> None:
@@ -18,7 +18,7 @@ class LLMException(Exception):
         return repr(self)
 
 
-class LLMConfigurationError(LLMException):
+class LLMConfigurationError(LLMError):
     """Raised when LLM provider configuration is invalid."""
 
     def __init__(self, issue: str, stage: str) -> None:
@@ -31,7 +31,7 @@ class LLMConfigurationError(LLMException):
         )
 
 
-class LLMAuthenticationError(LLMException):
+class LLMAuthenticationError(LLMError):
     """Raised when authentication with the LLM provider fails."""
 
     def __init__(self, issue: str, provider: str) -> None:
@@ -44,7 +44,7 @@ class LLMAuthenticationError(LLMException):
         )
 
 
-class LLMRequestError(LLMException):
+class LLMRequestError(LLMError):
     """Raised when a request to the LLM provider fails."""
 
     def __init__(self, issue: str, provider: str) -> None:
@@ -57,7 +57,7 @@ class LLMRequestError(LLMException):
         )
 
 
-class LLMResponseError(LLMException):
+class LLMResponseError(LLMError):
     """Raised when parsing or handling the LLM provider response fails."""
 
     def __init__(self, issue: str, provider: str) -> None:

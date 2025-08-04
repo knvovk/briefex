@@ -1,20 +1,23 @@
 from __future__ import annotations
 
 import logging
-import uuid
-from typing import override
+from typing import TYPE_CHECKING, override
 
 from sqlalchemy import exc as sa_exc
-from sqlalchemy.orm import Session
 
 from briefex.storage.base import SourceStorage
 from briefex.storage.exceptions import (
     DuplicateObjectError,
     ObjectNotFoundError,
-    StorageException,
+    StorageError,
 )
 from briefex.storage.models import Source
 from briefex.storage.session import connect
+
+if TYPE_CHECKING:
+    import uuid
+
+    from sqlalchemy.orm import Session
 
 _log = logging.getLogger(__name__)
 
@@ -106,7 +109,7 @@ class SQLAlchemySourceStorage(SourceStorage):
             ) from exc
         except Exception as exc:
             _log.error("Error retrieving Source (pk=%s): %s", pk, exc)
-            raise StorageException(
+            raise StorageError(
                 message=f"Error retrieving Source with pk={pk}: {exc}",
                 details={"pk": pk},
             ) from exc
@@ -135,7 +138,7 @@ class SQLAlchemySourceStorage(SourceStorage):
             return objs
         except Exception as exc:
             _log.error("Error querying Sources with filters %r: %s", filters, exc)
-            raise StorageException(
+            raise StorageError(
                 message=f"Error retrieving Sources: {exc}",
                 details={"filters": filters},
             ) from exc
@@ -168,7 +171,7 @@ class SQLAlchemySourceStorage(SourceStorage):
             raise
         except Exception as exc:
             _log.error("Error updating Source (pk=%s): %s", pk, exc)
-            raise StorageException(
+            raise StorageError(
                 message=f"Error updating Source with pk={pk}: {exc}",
                 details={"pk": pk, "data": data},
             ) from exc
@@ -195,7 +198,7 @@ class SQLAlchemySourceStorage(SourceStorage):
             raise
         except Exception as exc:
             _log.error("Error deleting Source (pk=%s): %s", pk, exc)
-            raise StorageException(
+            raise StorageError(
                 message=f"Error deleting Source with pk={pk}: {exc}",
                 details={"pk": pk},
             ) from exc

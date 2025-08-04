@@ -18,7 +18,7 @@ class GenericRSSParser(Parser):
         super().__init__(*args, **kwargs)
         _log.info(
             "GenericRSSParser initialized as a stub for source '%s'",
-            getattr(self, "_src", None) and self._src.url or "<unknown>",
+            (getattr(self, "_src", None) and self._src.url) or "<unknown>",
         )
 
     @override
@@ -34,7 +34,7 @@ class GenericRSSParser(Parser):
         _log.warning(
             "GenericRSSParser.parse called for source '%s' but not implemented; "
             "returning empty PostDraft",
-            getattr(self, "_src", None) and self._src.url or "<unknown>",
+            (getattr(self, "_src", None) and self._src.url) or "<unknown>",
         )
         return PostDraft()
 
@@ -51,6 +51,6 @@ class GenericRSSParser(Parser):
         _log.warning(
             "GenericRSSParser.parse_many called for source '%s' but not implemented; "
             "returning empty list",
-            getattr(self, "_src", None) and self._src.url or "<unknown>",
+            (getattr(self, "_src", None) and self._src.url) or "<unknown>",
         )
         return []

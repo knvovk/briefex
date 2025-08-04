@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
-import briefex.llm.sber  # noqa: F401
+import briefex.llm.sber
 import briefex.llm.yandex  # noqa: F401
 from briefex.llm.base import Provider, ProviderFactory
 from briefex.llm.exceptions import (
     LLMAuthenticationError,
     LLMConfigurationError,
-    LLMException,
+    LLMError,
     LLMRequestError,
     LLMResponseError,
 )
@@ -37,20 +37,20 @@ def get_default_provider_factory(*args: Any, **kwargs: Any) -> ProviderFactory:
 
 
 __all__ = [
-    "Provider",
-    "ProviderFactory",
-    "LLMAuthenticationError",
-    "LLMConfigurationError",
-    "LLMException",
-    "LLMRequestError",
-    "LLMResponseError",
     "ChatCompletionMessage",
     "ChatCompletionParams",
     "ChatCompletionRequest",
     "ChatCompletionResponse",
     "ChatCompletionStatus",
     "ChatCompletionUsage",
+    "LLMAuthenticationError",
+    "LLMConfigurationError",
+    "LLMError",
+    "LLMRequestError",
+    "LLMResponseError",
     "Model",
+    "Provider",
+    "ProviderFactory",
     "Role",
     "get_default_provider_factory",
 ]

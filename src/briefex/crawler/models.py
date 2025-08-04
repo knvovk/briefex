@@ -51,7 +51,7 @@ class PostDraft(BaseModel):
         Args:
             other: Draft whose non-null fields override this draft's fields.
         """
-        for field_name in PostDraft.model_fields.keys():
+        for field_name in PostDraft.model_fields:
             other_value = getattr(other, field_name)
             if other_value is not None:
                 setattr(self, field_name, other_value)

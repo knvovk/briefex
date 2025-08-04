@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-class IntelligenceException(Exception):
+class IntelligenceError(Exception):
     """Base exception for intelligence operations with message and optional details."""
 
     def __init__(self, message: str, details: dict | None = None) -> None:
@@ -18,7 +18,7 @@ class IntelligenceException(Exception):
         return repr(self)
 
 
-class IntelligenceConfigurationError(IntelligenceException):
+class IntelligenceConfigurationError(IntelligenceError):
     """Raised when intelligence component configuration is invalid."""
 
     def __init__(self, issue: str, stage: str) -> None:
@@ -31,7 +31,7 @@ class IntelligenceConfigurationError(IntelligenceException):
         )
 
 
-class IntelligenceContentCensoredError(IntelligenceException):
+class IntelligenceContentCensoredError(IntelligenceError):
     """Raised when content is filtered or censored during processing."""
 
     def __init__(self, issue: str, provider: str) -> None:
@@ -44,7 +44,7 @@ class IntelligenceContentCensoredError(IntelligenceException):
         )
 
 
-class IntelligenceSummarizationError(IntelligenceException):
+class IntelligenceSummarizationError(IntelligenceError):
     """Raised when summarization fails in an intelligence provider."""
 
     def __init__(self, issue: str, provider: str) -> None:

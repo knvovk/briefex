@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from briefex.crawler.exceptions import CrawlerConfigurationError
 from briefex.crawler.models import SourceCode
 from briefex.crawler.parsers.base import Parser
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 _log = logging.getLogger(__name__)
 

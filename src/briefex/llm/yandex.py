@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import logging
-from typing import override
+from typing import TYPE_CHECKING, override
 
 from yandex_cloud_ml_sdk import YCloudML
-from yandex_cloud_ml_sdk._models.completions.model import BaseGPTModel
 from yandex_cloud_ml_sdk._models.completions.result import (
     AlternativeStatus,
     GPTModelResult,
@@ -15,7 +14,7 @@ from briefex.llm.base import Provider
 from briefex.llm.exceptions import (
     LLMAuthenticationError,
     LLMConfigurationError,
-    LLMException,
+    LLMError,
     LLMRequestError,
     LLMResponseError,
 )
@@ -29,6 +28,9 @@ from briefex.llm.models import (
     Role,
 )
 from briefex.llm.registry import register
+
+if TYPE_CHECKING:
+    from yandex_cloud_ml_sdk._models.completions.model import BaseGPTModel
 
 _log = logging.getLogger(__name__)
 
@@ -121,7 +123,7 @@ class YandexGPT(Provider):
             )
             return response
 
-        except LLMException:
+        except LLMError:
             raise
 
         except Exception as exc:

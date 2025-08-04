@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-import datetime as dt
 import enum
 import uuid
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum as PgEnum
 from sqlalchemy import ForeignKey, String, func, text
 from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+if TYPE_CHECKING:
+    import datetime as dt
 
 
 class Model(DeclarativeBase):

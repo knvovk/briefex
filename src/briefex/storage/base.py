@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import logging
-import uuid
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from sqlalchemy.orm import Session
+if TYPE_CHECKING:
+    import uuid
 
-from briefex.storage.models import Post, Source
+    from sqlalchemy.orm import Session
+
+    from briefex.storage.models import Post, Source
 
 _log = logging.getLogger(__name__)
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import briefex.crawler.parsers.html  # noqa: F401
+import briefex.crawler.parsers.html
 import briefex.crawler.parsers.rss  # noqa: F401
 from briefex.crawler.parsers.base import Parser, ParserFactory
 from briefex.crawler.parsers.factory import DefaultParserFactory

@@ -11,7 +11,7 @@ from briefex.storage.exceptions import (
     ObjectNotFoundError,
     StorageConfigurationError,
     StorageConnectionError,
-    StorageException,
+    StorageError,
 )
 from briefex.storage.factory import (
     DefaultPostStorageFactory,
@@ -43,20 +43,20 @@ def get_default_post_storage_factory() -> PostStorageFactory:
 
 
 __all__ = [
-    "PostStorage",
-    "PostStorageFactory",
-    "SourceStorage",
-    "SourceStorageFactory",
     "DuplicateObjectError",
     "ObjectNotFoundError",
-    "StorageConfigurationError",
-    "StorageConnectionError",
-    "StorageException",
     "Post",
     "PostStatus",
+    "PostStorage",
+    "PostStorageFactory",
     "Source",
+    "SourceStorage",
+    "SourceStorageFactory",
     "SourceType",
-    "init_connection",
-    "get_default_source_storage_factory",
+    "StorageConfigurationError",
+    "StorageConnectionError",
+    "StorageError",
     "get_default_post_storage_factory",
+    "get_default_source_storage_factory",
+    "init_connection",
 ]

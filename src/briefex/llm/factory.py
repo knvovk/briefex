@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import logging
-from typing import override
+from typing import TYPE_CHECKING, override
 
 from briefex.llm.base import Provider, ProviderFactory
 from briefex.llm.exceptions import LLMConfigurationError
-from briefex.llm.models import Model
 from briefex.llm.registry import provider_registry
+
+if TYPE_CHECKING:
+    from briefex.llm.models import Model
 
 _log = logging.getLogger(__name__)
 

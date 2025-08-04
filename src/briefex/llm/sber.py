@@ -10,7 +10,7 @@ from gigachat import models as sdk_models
 from briefex.llm.base import Provider
 from briefex.llm.exceptions import (
     LLMConfigurationError,
-    LLMException,
+    LLMError,
     LLMRequestError,
     LLMResponseError,
 )
@@ -131,7 +131,7 @@ class GigaChat(Provider):
                 )
                 return response
 
-        except LLMException:
+        except LLMError:
             raise
 
         except httpx.TimeoutException as exc:

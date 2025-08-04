@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import override
+from typing import TYPE_CHECKING, override
 
 from bs4 import BeautifulSoup, Tag
 
@@ -11,8 +11,10 @@ from briefex.crawler.exceptions import (
     ParseError,
     ParseStructureError,
 )
-from briefex.crawler.models import PostDraft
 from briefex.crawler.parsers.base import Parser
+
+if TYPE_CHECKING:
+    from briefex.crawler.models import PostDraft
 
 _log = logging.getLogger(__name__)
 
@@ -162,7 +164,10 @@ class HTMLParser(Parser, ABC):
         except UnicodeDecodeError as exc:
             message = f"HTML decoding error: {exc}"
             _log.error("%s for source '%s'", message, self._src.url)
-            raise ParseContentError(issue=message, src_url=self._src.url)
+            raise ParseContentError(
+                issue=message,
+                src_url=self._src.url,
+            ) from exc
 
         except Exception as exc:
             _log.error("HTML parsing error for source '%s': %s", self._src.url, exc)

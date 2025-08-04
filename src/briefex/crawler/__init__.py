@@ -6,7 +6,7 @@ import briefex.crawler.crawler  # noqa: F401
 from briefex.crawler.base import Crawler, CrawlerFactory
 from briefex.crawler.exceptions import (
     CrawlerConfigurationError,
-    CrawlerException,
+    CrawlerError,
     FetchConnectionError,
     FetchError,
     FetchHttpError,
@@ -34,9 +34,9 @@ def get_default_crawler_factory(*args: Any, **kwargs: Any) -> CrawlerFactory:
 
 __all__ = [
     "Crawler",
-    "CrawlerFactory",
     "CrawlerConfigurationError",
-    "CrawlerException",
+    "CrawlerError",
+    "CrawlerFactory",
     "FetchConnectionError",
     "FetchError",
     "FetchHttpError",
@@ -45,10 +45,10 @@ __all__ = [
     "ParseContentError",
     "ParseError",
     "ParseStructureError",
-    "SourceNotFoundError",
     "Post",
     "PostDraft",
     "Source",
+    "SourceNotFoundError",
     "SourceType",
     "get_default_crawler_factory",
 ]

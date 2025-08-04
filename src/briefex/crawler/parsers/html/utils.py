@@ -3,10 +3,12 @@ from __future__ import annotations
 import logging
 import re
 import urllib.parse
-
-from bs4 import Tag
+from typing import TYPE_CHECKING
 
 from briefex.crawler.exceptions import ParseStructureError
+
+if TYPE_CHECKING:
+    from bs4 import Tag
 
 _log = logging.getLogger(__name__)
 

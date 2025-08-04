@@ -5,7 +5,7 @@ from briefex.workflow.crawl import CrawlWorkflow
 from briefex.workflow.summarize import SummarizeWorkflow
 
 __all__ = [
-    "Workflow",
     "CrawlWorkflow",
     "SummarizeWorkflow",
+    "Workflow",
 ]

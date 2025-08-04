@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
 from functools import wraps
-from typing import ParamSpec, TypeVar
+from typing import TYPE_CHECKING, ParamSpec, TypeVar
 
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from briefex.storage import StorageConfigurationError
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 _log = logging.getLogger(__name__)
 

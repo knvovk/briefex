@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-class CrawlerException(Exception):
+class CrawlerError(Exception):
     """Base exception for crawler errors, with message and optional details."""
 
     def __init__(self, message: str, details: dict | None = None) -> None:
@@ -18,7 +18,7 @@ class CrawlerException(Exception):
         return repr(self)
 
 
-class CrawlerConfigurationError(CrawlerException):
+class CrawlerConfigurationError(CrawlerError):
     """Raised for invalid crawler configuration."""
 
     def __init__(self, issue: str, stage: str) -> None:
@@ -31,7 +31,7 @@ class CrawlerConfigurationError(CrawlerException):
         )
 
 
-class InvalidSourceError(CrawlerException):
+class InvalidSourceError(CrawlerError):
     """Raised when a source URL is invalid."""
 
     def __init__(self, issue: str, src_url: str | None = None) -> None:
@@ -44,7 +44,7 @@ class InvalidSourceError(CrawlerException):
         )
 
 
-class SourceNotFoundError(CrawlerException):
+class SourceNotFoundError(CrawlerError):
     """Raised when the specified source URL is not found."""
 
     def __init__(self, src_url: str) -> None:
@@ -56,7 +56,7 @@ class SourceNotFoundError(CrawlerException):
         )
 
 
-class FetchError(CrawlerException):
+class FetchError(CrawlerError):
     """Base exception for fetch-related errors."""
 
 
@@ -105,7 +105,7 @@ class FetchHttpError(FetchError):
         )
 
 
-class ParseError(CrawlerException):
+class ParseError(CrawlerError):
     """Base exception for parse-related errors."""
 
 

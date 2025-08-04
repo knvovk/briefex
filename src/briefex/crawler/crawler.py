@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import logging
 from contextlib import closing
-from typing import override
+from typing import TYPE_CHECKING, override
 
 from briefex.crawler.base import Crawler
-from briefex.crawler.exceptions import CrawlerException
-from briefex.crawler.models import Post, Source
+from briefex.crawler.exceptions import CrawlerError
+
+if TYPE_CHECKING:
+    from briefex.crawler.models import Post, Source
 
 _log = logging.getLogger(__name__)
 
@@ -81,7 +83,7 @@ class DefaultCrawler(Crawler):
 
         except Exception as exc:
             _log.error("Crawl failed for source '%s': %s", src, exc)
-            raise CrawlerException(
+            raise CrawlerError(
                 message=f"Crawl failed for source '{src}': {exc}",
                 details={"src_url": src.url},
             ) from exc

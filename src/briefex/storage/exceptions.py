@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-class StorageException(Exception):
+class StorageError(Exception):
     """Base exception for storage operations with message and optional details."""
 
     def __init__(self, message: str, details: dict | None = None) -> None:
@@ -18,7 +18,7 @@ class StorageException(Exception):
         return repr(self)
 
 
-class StorageConfigurationError(StorageException):
+class StorageConfigurationError(StorageError):
     """Raised when storage configuration is invalid."""
 
     def __init__(self, issue: str, stage: str) -> None:
@@ -31,7 +31,7 @@ class StorageConfigurationError(StorageException):
         )
 
 
-class StorageConnectionError(StorageException):
+class StorageConnectionError(StorageError):
     """Raised when connection to storage fails."""
 
     def __init__(self, issue: str) -> None:
@@ -43,7 +43,7 @@ class StorageConnectionError(StorageException):
         )
 
 
-class ObjectNotFoundError(StorageException):
+class ObjectNotFoundError(StorageError):
     """Raised when a requested object is not found in storage."""
 
     def __init__(self, cls: str, details: dict | None = None) -> None:
@@ -53,7 +53,7 @@ class ObjectNotFoundError(StorageException):
         )
 
 
-class DuplicateObjectError(StorageException):
+class DuplicateObjectError(StorageError):
     """Raised when attempting to create a duplicate object in storage."""
 
     def __init__(self, cls: str, details: dict | None = None) -> None:

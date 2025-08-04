@@ -2,21 +2,24 @@ from __future__ import annotations
 
 import datetime
 import logging
-import uuid
-from typing import override
+from typing import TYPE_CHECKING, override
 
 from sqlalchemy import exc as sa_exc
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from briefex.storage.base import PostStorage
 from briefex.storage.exceptions import (
     DuplicateObjectError,
     ObjectNotFoundError,
-    StorageException,
+    StorageError,
 )
 from briefex.storage.models import Post
 from briefex.storage.session import connect
+
+if TYPE_CHECKING:
+    import uuid
+
+    from sqlalchemy.orm import Session
 
 _log = logging.getLogger(__name__)
 
@@ -108,7 +111,7 @@ class SQLAlchemyPostStorage(PostStorage):
             ) from exc
         except Exception as exc:
             _log.error("Error retrieving Post (pk=%s): %s", pk, exc)
-            raise StorageException(
+            raise StorageError(
                 message=f"Error retrieving Post with pk={pk}: {exc}",
                 details={"pk": pk},
             ) from exc
@@ -145,7 +148,7 @@ class SQLAlchemyPostStorage(PostStorage):
             return objs
         except Exception as exc:
             _log.error("Error querying recent Posts (days=%d): %s", days, exc)
-            raise StorageException(
+            raise StorageError(
                 message=f"Error retrieving recent Posts: {exc}",
                 details={"days": days},
             ) from exc
@@ -178,7 +181,7 @@ class SQLAlchemyPostStorage(PostStorage):
             return objs
         except Exception as exc:
             _log.error("Error querying Posts with filters %r: %s", filters, exc)
-            raise StorageException(
+            raise StorageError(
                 message=f"Error retrieving Posts: {exc}",
                 details={"filters": filters},
             ) from exc
@@ -211,7 +214,7 @@ class SQLAlchemyPostStorage(PostStorage):
             raise
         except Exception as exc:
             _log.error("Error updating Post (pk=%s): %s", pk, exc)
-            raise StorageException(
+            raise StorageError(
                 message=f"Error updating Post with pk={pk}: {exc}",
                 details={"pk": pk, "data": data},
             ) from exc
@@ -238,7 +241,7 @@ class SQLAlchemyPostStorage(PostStorage):
             raise
         except Exception as exc:
             _log.error("Error deleting Post (pk=%s): %s", pk, exc)
-            raise StorageException(
+            raise StorageError(
                 message=f"Error deleting Post with pk={pk}: {exc}",
                 details={"pk": pk},
             ) from exc

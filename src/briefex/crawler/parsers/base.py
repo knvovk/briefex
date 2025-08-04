@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from briefex.crawler.models import PostDraft, Source
+if TYPE_CHECKING:
+    from briefex.crawler.models import PostDraft, Source
 
 _log = logging.getLogger(__name__)
 
