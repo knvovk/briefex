@@ -101,35 +101,61 @@ class GigaChat(Provider):
             LLMRequestError: On request or timeout failures.
             LLMResponseError: On response parsing failures.
         """
+        _log.info(
+            "Sending completion request to GigaChat (model='%s')",
+            request.model,
+        )
+        provider_name = self.__class__.__name__
+
         try:
             with self._get_configured_client() as client:
-                payload = self._get_configured_sdk_request(request)
-                _log.info("Sending request to model: %s", request.model)
-                result = client.chat(payload)
+                sdk_request = self._get_configured_sdk_request(request)
+                _log.debug(
+                    "SDK request configured: "
+                    "temperature=%.2f, max_tokens=%d, stream=%s",
+                    request.params.temperature,
+                    request.params.max_tokens,
+                    request.params.stream,
+                )
+
+                result = client.chat(sdk_request)
+                _log.info(
+                    "Received response from GigaChat (finish_reason='%s')",
+                    result.choices[0].finish_reason,
+                )
 
                 response = self._create_completion_response(request.model, result)
+                _log.debug(
+                    "Mapped SDK response to ChatCompletionResponse (status='%s')",
+                    response.status,
+                )
                 return response
 
         except LLMException:
             raise
 
         except httpx.TimeoutException as exc:
-            _log.error("Timeout error during chat completion: %s", exc)
+            _log.error("GigaChat request timed out after %ds: %s", self._timeout, exc)
             raise LLMRequestError(
-                issue=f"Timeout error during chat completion: {exc}",
-                provider=self.__class__.__name__,
+                issue=f"Timeout after {self._timeout}s: {exc}",
+                provider=provider_name,
             ) from exc
 
         except Exception as exc:
-            _log.error("Unexpected error during chat completion: %s", exc)
+            _log.error("Unexpected error during GigaChat completion: %s", exc)
             raise LLMRequestError(
-                issue=f"Unexpected error during chat completion: {exc}",
-                provider=self.__class__.__name__,
+                issue=f"Completion error: {exc}",
+                provider=provider_name,
             ) from exc
 
     def _get_configured_client(self) -> sdk.GigaChat:
         """Instantiate and return a configured GigaChat SDK client."""
         try:
+            _log.debug(
+                "Initializing GigaChat SDK client (model='%s', scope='%s')",
+                self._model,
+                self._scope,
+            )
             return sdk.GigaChat(
                 credentials=self._credentials,
                 scope=self._scope,
@@ -138,9 +164,10 @@ class GigaChat(Provider):
                 timeout=self._timeout,
             )
         except Exception as exc:
+            _log.error("Failed to instantiate GigaChat client: %s", exc)
             raise LLMConfigurationError(
-                issue=f"Client instantiation failed for {self._model}: {exc}",
-                stage=f"{self.__class__.__name__}_instantiation",
+                issue=f"Client instantiation failed: {exc}",
+                stage="gigachat_instantiation",
             ) from exc
 
     def _get_configured_sdk_request(
@@ -148,17 +175,9 @@ class GigaChat(Provider):
         request: ChatCompletionRequest,
     ) -> sdk_models.Chat:
         """Build and return an SDK Chat request from ChatCompletionRequest."""
-        _log.info(
-            "Configuring request for model: %s "
-            "(temperature=%.2f, max_tokens=%d, stream=%s)",
-            request.model,
-            request.params.temperature,
-            request.params.max_tokens,
-            request.params.stream,
-        )
-
         try:
             messages = [_msg_to_sdk_msg(msg) for msg in request.messages]
+            _log.debug("Converted %d messages for SDK request", len(messages))
             chat = sdk_models.Chat(
                 model=request.model,
                 messages=messages,
@@ -169,9 +188,9 @@ class GigaChat(Provider):
             return chat
 
         except Exception as exc:
-            _log.error("Unexpected error during request configuration: %s", exc)
+            _log.error("Error configuring SDK request: %s", exc)
             raise LLMRequestError(
-                issue=f"Request configuration failed for {self._model}: {exc}",
+                issue=f"Request configuration failed: {exc}",
                 provider=self.__class__.__name__,
             ) from exc
 
@@ -182,23 +201,31 @@ class GigaChat(Provider):
     ) -> ChatCompletionResponse:
         """Convert SDK ChatCompletion into ChatCompletionResponse."""
         try:
+            usage = ChatCompletionUsage(
+                prompt_tokens=result.usage.prompt_tokens,
+                completion_tokens=result.usage.completion_tokens,
+                total_tokens=result.usage.total_tokens,
+            )
+            status = _status_from_sdk_status(result.choices[0].finish_reason)
+            message = ChatCompletionMessage(
+                role=Role.ASSISTANT,
+                content=result.choices[0].message.content,
+            )
+            _log.debug(
+                "Creating ChatCompletionResponse (model='%s', status='%s')",
+                model,
+                status,
+            )
             return ChatCompletionResponse(
                 model=model,
-                usage=ChatCompletionUsage(
-                    prompt_tokens=result.usage.prompt_tokens,
-                    completion_tokens=result.usage.completion_tokens,
-                    total_tokens=result.usage.total_tokens,
-                ),
-                status=_status_from_sdk_status(result.choices[0].finish_reason),
-                message=ChatCompletionMessage(
-                    role=Role.ASSISTANT,
-                    content=result.choices[0].message.content,
-                ),
+                usage=usage,
+                status=status,
+                message=message,
             )
 
         except Exception as exc:
-            _log.error("Unexpected error during response creation: %s", exc)
+            _log.error("Error constructing ChatCompletionResponse: %s", exc)
             raise LLMResponseError(
-                issue=f"Response creation failed for {model}: {exc}",
+                issue=f"Response creation failed: {exc}",
                 provider=self.__class__.__name__,
             ) from exc

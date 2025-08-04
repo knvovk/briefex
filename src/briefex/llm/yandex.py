@@ -94,74 +94,89 @@ class YandexGPT(Provider):
         Raises:
             LLMRequestError: If an unexpected error occurs during completion.
         """
+        _log.info(
+            "Sending completion request to YandexGPT (model='%s')",
+            request.model,
+        )
+        provider_name = self.__class__.__name__
+
         try:
-            configured_model = self._get_configured_model(request)
-            messages = [_msg_as_dict(msg) for msg in request.messages]
-            _log.info("Sending request to model: %s", request.model)
-            result = configured_model.run(messages)
+            model_instance = self._get_configured_model(request)
+            sdk_messages = [_msg_as_dict(msg) for msg in request.messages]
+            _log.debug(
+                "Prepared %d messages for YandexGPT request",
+                len(sdk_messages),
+            )
+
+            result = model_instance.run(sdk_messages)
+            _log.info(
+                "Received response from YandexGPT (status='%s')",
+                result.status,
+            )
 
             response = self._create_completion_response(request.model, result)
+            _log.debug(
+                "Constructed ChatCompletionResponse (status='%s')",
+                response.status,
+            )
             return response
 
         except LLMException:
             raise
 
         except Exception as exc:
-            _log.error("Unexpected error during chat completion: %s", exc)
+            _log.error("Unexpected error during YandexGPT completion: %s", exc)
             raise LLMRequestError(
-                issue=f"Unexpected error during chat completion: {exc}",
-                provider=self.__class__.__name__,
+                issue=f"Completion error: {exc}",
+                provider=provider_name,
             ) from exc
 
     def _get_configured_client(self, folder_id: str, api_key: str) -> YCloudML:
         """Instantiate and configure the YCloudML client for requests."""
         try:
-            return YCloudML(
-                folder_id=folder_id,
-                auth=APIKeyAuth(api_key),
-            )
+            client = YCloudML(folder_id=folder_id, auth=APIKeyAuth(api_key))
+            _log.info("YCloudML client initialized successfully")
+            return client
 
         except Exception as exc:
             err_msg = str(exc).lower()
             if "auth" in err_msg or "key" in err_msg:
-                _log.error(
-                    "Authentication error during %s initialization: %s",
-                    self.__class__.__name__,
-                    exc,
-                )
+                _log.error("Authentication failed for YCloudML client: %s", exc)
                 raise LLMAuthenticationError(
-                    issue=f"Failed to initialize YCloudML: {exc}",
+                    issue=f"Authentication error: {exc}",
                     provider=self.__class__.__name__,
                 ) from exc
 
+            _log.error("Configuration error initializing YCloudML client: %s", exc)
             raise LLMConfigurationError(
-                issue=f"Client instantiation failed for YCloudML: {exc}",
-                stage=f"{self.__class__.__name__}_instantiation",
+                issue=f"Client instantiation failed: {exc}",
+                stage="yandexgpt_instantiation",
             ) from exc
 
     def _get_configured_model(self, request: ChatCompletionRequest) -> BaseGPTModel:
         """Configure and return a GPT model instance for the request."""
-        try:
-            _log.info(
-                "Configuring request for model: %s "
-                "(temperature=%.2f, max_tokens=%d, stream=%s)",
-                request.model,
-                request.params.temperature,
-                request.params.max_tokens,
-                request.params.stream,
-            )
+        _log.debug(
+            "Configuring model '%s' (temperature=%.2f, max_tokens=%d, stream=%s)",
+            request.model,
+            request.params.temperature,
+            request.params.max_tokens,
+            request.params.stream,
+        )
 
-            instance = self._client.models.completions(request.model)
-            return instance.configure(
+        try:
+            model_wrapper = self._client.models.completions(request.model)
+            configured = model_wrapper.configure(
                 temperature=request.params.temperature,
                 max_tokens=request.params.max_tokens,
             )
+            _log.info("Model '%s' configured successfully", request.model)
+            return configured
 
         except Exception as exc:
-            _log.error("Unexpected error during request configuration: %s", exc)
+            _log.error("Error configuring model '%s': %s", request.model, exc)
             raise LLMConfigurationError(
-                issue=f"Failed to initialize {self.__class__.__name__}: {exc}",
-                stage=f"{self.__class__.__name__}_initialization",
+                issue=f"Model configuration failed: {exc}",
+                stage="yandexgpt_model_configuration",
             ) from exc
 
     def _create_completion_response(
@@ -171,23 +186,28 @@ class YandexGPT(Provider):
     ) -> ChatCompletionResponse:
         """Build a ChatCompletionResponse from the GPTModelResult."""
         try:
+            usage = ChatCompletionUsage(
+                prompt_tokens=result.usage.input_text_tokens,
+                completion_tokens=result.usage.completion_tokens,
+                total_tokens=result.usage.total_tokens,
+            )
+            status = _status_from_sdk_status(result.status)
+            message = ChatCompletionMessage(
+                role=Role.ASSISTANT,
+                content=result.alternatives[0].text,
+            )
+            _log.debug(
+                "Creating response object for model='%s' (status='%s')",
+                model,
+                status,
+            )
             return ChatCompletionResponse(
-                model=model,
-                usage=ChatCompletionUsage(
-                    prompt_tokens=result.usage.input_text_tokens,
-                    completion_tokens=result.usage.completion_tokens,
-                    total_tokens=result.usage.total_tokens,
-                ),
-                status=_status_from_sdk_status(result.status),
-                message=ChatCompletionMessage(
-                    role=Role.ASSISTANT,
-                    content=result.alternatives[0].text,
-                ),
+                model=model, usage=usage, status=status, message=message
             )
 
         except Exception as exc:
-            _log.error("Unexpected error during response creation: %s", exc)
+            _log.error("Error creating ChatCompletionResponse: %s", exc)
             raise LLMResponseError(
-                issue=f"Response creation failed for {model}: {exc}",
+                issue=f"Response creation failed: {exc}",
                 provider=self.__class__.__name__,
             ) from exc

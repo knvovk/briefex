@@ -24,13 +24,19 @@ class ProviderRegistry(dict[type[Provider], Sequence[Model]]):
             LLMConfigurationError: If cls is not a subclass of Provider.
         """
         if not isinstance(cls, type) or not issubclass(cls, Provider):
+            message = f"Cannot register '{cls.__name__}': not a Provider subclass"
+            _log.error(message)
             raise LLMConfigurationError(
-                issue=f"Class `{cls.__name__}` must be a subclass of Provider",
+                issue=message,
                 stage="provider_registration",
             )
 
         self[cls] = models
-        _log.debug("%s registered for %s", cls.__name__, ", ".join(models))
+        _log.info(
+            "Registered provider '%s' for models: %s",
+            cls.__name__,
+            ", ".join(models),
+        )
 
 
 provider_registry = ProviderRegistry()
@@ -58,15 +64,28 @@ def register(models: Sequence[Model]) -> Callable[[type[Provider]], type[Provide
         Raises:
             LLMConfigurationError: If registration fails.
         """
+        _log.debug(
+            "Attempting to register provider '%s' for models: %s",
+            cls.__name__,
+            ", ".join(models),
+        )
         try:
             provider_registry.register(models, cls)
+            _log.info("Provider '%s' successfully registered", cls.__name__)
             return cls
+
         except LLMConfigurationError:
             raise
+
         except Exception as exc:
-            _log.error("Unexpected error during provider registration: %s", exc)
+            _log.error(
+                "Unexpected error registering provider '%s' for models %s: %s",
+                cls.__name__,
+                ", ".join(models),
+                exc,
+            )
             raise LLMConfigurationError(
-                issue=f"`{cls.__name__}` registration failed",
+                issue=f"Registration failed for '{cls.__name__}': {exc}",
                 stage="provider_registration",
             ) from exc
 
