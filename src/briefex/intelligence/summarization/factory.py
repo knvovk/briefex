@@ -25,25 +25,20 @@ class DefaultSummarizerFactory(SummarizerFactory):
         Raises:
             IntelligenceConfigurationError: If instantiation fails or no default is set.
         """
-        _log.info(
-            "Initializing summarizer by default: %s",
-            _default_summarizer_cls.__name__,
-        )
+        class_name = _default_summarizer_cls.__name__
+        _log.debug("Instantiating default summarizer class '%s'", class_name)
+
         try:
             instance = _default_summarizer_cls(
                 *self._summarizer_args,
                 **self._summarizer_kwargs,
             )
-            _log.info(
-                "%s initialized as default summarizer",
-                _default_summarizer_cls.__name__,
-            )
+            _log.info("Summarizer '%s' instantiated successfully", class_name)
             return instance
 
         except Exception as exc:
-            _log.error("Unexpected error during summarizer initialization: %s", exc)
-            cls = _default_summarizer_cls.__name__
+            _log.error("Failed to instantiate summarizer '%s': %s", class_name, exc)
             raise IntelligenceConfigurationError(
-                issue=f"Summarizer instantiation failed for {cls}: {exc}",
+                issue=f"Summarizer instantiation failed for '{class_name}': {exc}",
                 stage="summarizer_instantiation",
             ) from exc

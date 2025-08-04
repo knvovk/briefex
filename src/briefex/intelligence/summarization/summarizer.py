@@ -46,17 +46,29 @@ class DefaultSummarizer(Summarizer):
             IntelligenceContentCensoredError: If content is filtered by the provider.
             IntelligenceSummarizationError: If an unexpected error occurs.
         """
-        _log.info("Starting text summarization (input length: %d chars)", len(text))
+        _log.info(
+            "Starting summarization (model='%s', input length=%d chars)",
+            self._model,
+            len(text),
+        )
 
         provider: Provider | None = None
         try:
             request = self._build_completion_request(text)
+            _log.debug(
+                "Built completion request (temperature=%.2f, max_tokens=%d)",
+                self._temperature,
+                self._max_tokens,
+            )
+
             provider = self._provider_factory.create(self._model)
+            _log.debug("Using provider '%s'", provider.__class__.__name__)
+
             response = provider.complete(request)
 
             if response.status == ChatCompletionStatus.CONTENT_FILTERED:
                 _log.warning(
-                    "Summarization aborted: content was filtered by provider %s",
+                    "Content filtered by provider '%s'; aborting summarization",
                     provider.__class__.__name__,
                 )
                 raise IntelligenceContentCensoredError(
@@ -65,9 +77,8 @@ class DefaultSummarizer(Summarizer):
                 )
 
             _log.info(
-                "Summarization completed successfully "
-                "(output length: %d chars, model: %s, status: %s, "
-                "prompt tokens: %d, completion tokens: %d, total tokens: %d)",
+                "Summarization succeeded (output length=%d chars, model='%s', "
+                "status='%s', prompt_tokens=%d, completion_tokens=%d, total_tokens=%d)",
                 len(response.message.content),
                 response.model,
                 response.status,
@@ -81,10 +92,16 @@ class DefaultSummarizer(Summarizer):
             raise
 
         except Exception as exc:
-            _log.error("Summarization failed due to unexpected error: %s", exc)
+            provider_name = provider.__class__.__name__ if provider else "<none>"
+            _log.error(
+                "Summarization failed (model='%s', provider='%s'): %s",
+                self._model,
+                provider_name,
+                exc,
+            )
             raise IntelligenceSummarizationError(
                 issue=str(exc),
-                provider=provider.__class__.__name__ if provider else None,
+                provider=provider_name,
             ) from exc
 
     def _build_completion_request(self, text: str) -> ChatCompletionRequest:
