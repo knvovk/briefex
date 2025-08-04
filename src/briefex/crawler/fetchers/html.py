@@ -225,15 +225,24 @@ class HTMLFetcher(Fetcher):
                 self._request_timeout,
                 url,
             )
-            raise FetchTimeoutError(src_url=url, timeout=self._request_timeout) from exc
+            raise FetchTimeoutError(
+                src_url=url,
+                timeout=self._request_timeout,
+            ) from exc
 
         except requests.exceptions.ConnectionError as exc:
             _log.warning("Connection error for URL '%s': %s", url, exc)
-            raise FetchConnectionError(issue=str(exc), src_url=url) from exc
+            raise FetchConnectionError(
+                issue=str(exc),
+                src_url=url,
+            ) from exc
 
         except requests.exceptions.RequestException as exc:
             _log.error("RequestException for URL '%s': %s", url, exc)
-            raise FetchError(message=str(exc), details={"src_url": url}) from exc
+            raise FetchError(
+                message=str(exc),
+                details={"src_url": url},
+            ) from exc
 
     def _get_backoff(self, response: requests.Response | None, attempt: int) -> float:
         if response is not None:
@@ -241,7 +250,8 @@ class HTMLFetcher(Fetcher):
             if retry_after:
                 delay = float(retry_after)
                 _log.debug(
-                    "Using 'Retry-After' header for backoff: %.2f seconds", delay
+                    "Using 'Retry-After' header for backoff: %.2f seconds",
+                    delay,
                 )
                 return delay
 
