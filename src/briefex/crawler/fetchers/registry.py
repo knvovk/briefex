@@ -32,8 +32,8 @@ class FetcherRegistry(dict[SourceType, type[Fetcher]]):
             )
 
         self[src_type] = cls
-        _log.debug(
-            "Registered fetcher '%s' for source type '%s'",
+        _log.info(
+            "Fetcher '%s' successfully registered for source type '%s'",
             cls.__name__,
             src_type,
         )
@@ -71,8 +71,8 @@ def register(src_type: SourceType) -> Callable[[type[Fetcher]], type[Fetcher]]:
         )
         try:
             fetcher_registry.register(src_type, cls)
-            _log.info(
-                "Fetcher '%s' successfully registered for source type '%s'",
+            _log.debug(
+                "Registered fetcher '%s' for source type '%s'",
                 cls.__name__,
                 src_type,
             )

@@ -33,7 +33,7 @@ class ParserRegistry(dict[SourceCode, type[Parser]]):
 
         self[code] = cls
         _log.info(
-            "Registered parser '%s' for source code '%s'",
+            "Parser '%s' successfully registered for source code '%s'",
             cls.__name__,
             code,
         )
@@ -71,8 +71,8 @@ def register(code: SourceCode) -> Callable[[type[Parser]], type[Parser]]:
         )
         try:
             parser_registry.register(code, cls)
-            _log.info(
-                "Parser '%s' successfully registered for source code '%s'",
+            _log.debug(
+                "Registered parser '%s' for source code '%s'",
                 cls.__name__,
                 code,
             )

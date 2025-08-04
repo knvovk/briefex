@@ -18,7 +18,7 @@ class Parser(ABC):
         self._kwargs = kwargs
 
         _log.info(
-            "%s initialized for %s with args=%r, kwargs=%r",
+            "%s initialized for '%s' with args=%r, kwargs=%r",
             self.__class__.__name__,
             src,
             args,

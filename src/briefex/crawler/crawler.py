@@ -27,7 +27,7 @@ class DefaultCrawler(Crawler):
         Raises:
             CrawlerException: If an unexpected error occurs during crawl.
         """
-        _log.info("Starting crawl for source '%s'", src.url)
+        _log.info("Starting crawl for source '%s'", src)
 
         try:
             with closing(self._fetcher_factory.create(src.type)) as fetcher:
@@ -45,7 +45,7 @@ class DefaultCrawler(Crawler):
                         "Processing draft %d/%d for source '%s'",
                         idx,
                         total,
-                        src.url,
+                        src,
                     )
                     try:
                         draft_page = fetcher.fetch(draft.canonical_url)
@@ -65,14 +65,14 @@ class DefaultCrawler(Crawler):
                             "Failed to process draft %d/%d for source '%s': %s",
                             idx,
                             total,
-                            src.url,
+                            src,
                             exc,
                         )
 
                 _log.info(
                     "Finished crawl for source '%s': "
                     "total=%d, successful=%d, failed=%d",
-                    src.url,
+                    src,
                     total,
                     successful,
                     failed,
@@ -80,8 +80,8 @@ class DefaultCrawler(Crawler):
                 return posts
 
         except Exception as exc:
-            _log.error("Crawl failed for source '%s': %s", src.url, exc)
+            _log.error("Crawl failed for source '%s': %s", src, exc)
             raise CrawlerException(
-                message=f"Crawl failed for source '{src.url}': {exc}",
+                message=f"Crawl failed for source '{src}': {exc}",
                 details={"src_url": src.url},
             ) from exc
