@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from functools import cached_property
 from typing import Any, override
 
 from briefex.intelligence.exceptions import (
@@ -52,7 +53,6 @@ class DefaultSummarizer(Summarizer):
             len(text),
         )
 
-        provider: Provider | None = None
         try:
             request = self._build_completion_request(text)
             _log.debug(
@@ -61,19 +61,18 @@ class DefaultSummarizer(Summarizer):
                 self._max_tokens,
             )
 
-            provider = self._provider_factory.create(self._model)
-            _log.debug("Using provider '%s'", provider.__class__.__name__)
+            _log.debug("Using provider '%s'", self._provider.__class__.__name__)
 
-            response = provider.complete(request)
+            response = self._provider.complete(request)
 
             if response.status == ChatCompletionStatus.CONTENT_FILTERED:
                 _log.warning(
                     "Content filtered by provider '%s'; aborting summarization",
-                    provider.__class__.__name__,
+                    self._provider.__class__.__name__,
                 )
                 raise IntelligenceContentCensoredError(
                     issue=response.message.content,
-                    provider=provider.__class__.__name__,
+                    provider=self._provider.__class__.__name__,
                 )
 
             _log.info(
@@ -92,17 +91,21 @@ class DefaultSummarizer(Summarizer):
             raise
 
         except Exception as exc:
-            provider_name = provider.__class__.__name__ if provider else "<none>"
             _log.error(
                 "Summarization failed (model='%s', provider='%s'): %s",
                 self._model,
-                provider_name,
+                self._provider.__class__.__name__,
                 exc,
             )
             raise IntelligenceSummarizationError(
                 issue=str(exc),
-                provider=provider_name,
+                provider=self._provider.__class__.__name__,
             ) from exc
+
+    @cached_property
+    def _provider(self) -> Provider:
+        """Lazily create and cache the provider instance."""
+        return self._provider_factory.create(self._model)
 
     def _build_completion_request(self, text: str) -> ChatCompletionRequest:
         return ChatCompletionRequest(

@@ -33,7 +33,7 @@ class ProviderRegistry(dict[type[Provider], Sequence[Model]]):
 
         self[cls] = models
         _log.info(
-            "Registered provider '%s' for models: %s",
+            "Provider '%s' successfully registered for models: %s",
             cls.__name__,
             ", ".join(models),
         )
@@ -71,7 +71,11 @@ def register(models: Sequence[Model]) -> Callable[[type[Provider]], type[Provide
         )
         try:
             provider_registry.register(models, cls)
-            _log.info("Provider '%s' successfully registered", cls.__name__)
+            _log.debug(
+                "Registered provider '%s' for models: %s",
+                cls.__name__,
+                ", ".join(models),
+            )
             return cls
 
         except LLMConfigurationError:
