@@ -32,23 +32,18 @@ class DefaultSourceStorageFactory(SourceStorageFactory):
         Raises:
             StorageConfigurationError: If instantiation fails.
         """
-        _log.debug(
-            "Initializing source storage by default: %s",
-            _default_source_storage_cls.__name__,
-        )
+        class_name = _default_source_storage_cls.__name__
+        _log.debug("Instantiating default source storage class '%s'", class_name)
+
         try:
             instance = _default_source_storage_cls()
-            _log.info(
-                "%s initialized as default source storage",
-                _default_source_storage_cls.__name__,
-            )
+            _log.info("Source storage '%s' instantiated successfully", class_name)
             return instance
 
         except Exception as exc:
-            _log.error("Unexpected error during source storage initialization: %s", exc)
-            cls = _default_source_storage_cls.__name__
+            _log.error("Failed to instantiate source storage '%s': %s", class_name, exc)
             raise StorageConfigurationError(
-                issue=f"SourceStorage instantiation failed for {cls}: {exc}",
+                issue=f"Source storage instantiation failed for '{class_name}': {exc}",
                 stage="source_storage_instantiation",
             ) from exc
 
@@ -66,22 +61,17 @@ class DefaultPostStorageFactory(PostStorageFactory):
         Raises:
             StorageConfigurationError: If instantiation fails.
         """
-        _log.debug(
-            "Initializing post storage by default: %s",
-            _default_post_storage_cls.__name__,
-        )
+        class_name = _default_post_storage_cls.__name__
+        _log.debug("Instantiating default post storage class '%s'", class_name)
+
         try:
             instance = _default_post_storage_cls()
-            _log.info(
-                "%s initialized as default post storage",
-                _default_post_storage_cls.__name__,
-            )
+            _log.info("Post storage '%s' instantiated successfully", class_name)
             return instance
 
         except Exception as exc:
-            _log.error("Unexpected error during post storage initialization: %s", exc)
-            cls = _default_post_storage_cls.__name__
+            _log.error("Failed to instantiate post storage '%s': %s", class_name, exc)
             raise StorageConfigurationError(
-                issue=f"PostStorage instantiation failed for {cls}: {exc}",
+                issue=f"Post storage instantiation failed for '{class_name}': {exc}",
                 stage="post_storage_instantiation",
             ) from exc

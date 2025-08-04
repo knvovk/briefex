@@ -39,22 +39,17 @@ class SQLAlchemyPostStorage(PostStorage):
         Raises:
             DuplicateObjectError: If the post violates a uniqueness constraint.
         """
-        _log.debug("Adding new post to storage")
-
+        _log.debug("Adding Post to storage: %r", obj)
         try:
             session.add(obj)
+            _log.info("Post added to session (id=%s)", obj.id)
+            return obj
         except sa_exc.IntegrityError as exc:
-            _log.error("Integrity error during adding post to session: %s", exc)
+            _log.error("Integrity error adding Post to session: %s", exc)
             raise DuplicateObjectError(
-                cls=Post.__class__.__name__,
-                details={
-                    "issue": str(exc),
-                    "obj": obj,
-                },
+                cls=Post.__name__,
+                details={"issue": str(exc), "obj": obj},
             ) from exc
-
-        _log.debug("Successfully added new post to storage")
-        return obj
 
     @override
     @connect
@@ -71,22 +66,18 @@ class SQLAlchemyPostStorage(PostStorage):
         Raises:
             DuplicateObjectError: If any post violates a uniqueness constraint.
         """
-        _log.debug("Adding all new posts to storage")
-
+        count = len(objs)
+        _log.debug("Adding %d Posts to storage", count)
         try:
             session.add_all(objs)
+            _log.info("%d Posts added to session", count)
+            return objs
         except sa_exc.IntegrityError as exc:
-            _log.error("Integrity error during adding posts to session: %s", exc)
+            _log.error("Integrity error adding Posts to session: %s", exc)
             raise DuplicateObjectError(
-                cls=Post.__class__.__name__,
-                details={
-                    "issue": str(exc),
-                    "objs": objs,
-                },
+                cls=Post.__name__,
+                details={"issue": str(exc), "objs": objs},
             ) from exc
-
-        _log.debug("Successfully added all new posts to storage")
-        return objs
 
     @override
     @connect
@@ -104,31 +95,22 @@ class SQLAlchemyPostStorage(PostStorage):
             ObjectNotFoundError: If no Post with the given pk exists.
             StorageException: On unexpected errors.
         """
-        _log.debug("Retrieving post from storage (pk: %s)", pk)
-
+        _log.debug("Retrieving Post from storage (pk=%s)", pk)
         try:
             instance = session.get_one(Post, pk)
-            _log.debug("Successfully retrieved post from storage (pk: %s)", pk)
+            _log.info("Post retrieved from storage (pk=%s)", pk)
             return instance
-
         except sa_exc.NoResultFound as exc:
+            _log.warning("No Post found with pk=%s", pk)
             raise ObjectNotFoundError(
-                cls=Post.__class__.__name__,
-                details={
-                    "pk": pk,
-                },
+                cls=Post.__name__,
+                details={"pk": pk},
             ) from exc
-
         except Exception as exc:
-            _log.error(
-                "Unexpected error during retrieving post from storage: %s",
-                exc,
-            )
+            _log.error("Error retrieving Post (pk=%s): %s", pk, exc)
             raise StorageException(
-                message=f"Unexpected error during retrieving post from storage: {exc}",
-                details={
-                    "pk": pk,
-                },
+                message=f"Error retrieving Post with pk={pk}: {exc}",
+                details={"pk": pk},
             ) from exc
 
     @override
@@ -146,8 +128,7 @@ class SQLAlchemyPostStorage(PostStorage):
         Raises:
             StorageException: On unexpected errors.
         """
-        _log.debug("Retrieving recent posts from storage (days: %d)", days)
-
+        _log.debug("Querying recent Posts (days=%d)", days)
         try:
             cutoff = datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=days)
             query = (
@@ -156,27 +137,17 @@ class SQLAlchemyPostStorage(PostStorage):
                 .order_by(Post.created_at.desc())
             )
             objs = list(session.scalars(query).all())
-
-            _log.debug(
-                "Successfully retrieved %d recent posts from storage (days: %d)",
+            _log.info(
+                "Retrieved %d recent Posts (days=%d)",
                 len(objs),
                 days,
             )
             return objs
-
         except Exception as exc:
-            _log.error(
-                "Unexpected error during retrieving recent posts from storage: %s",
-                exc,
-            )
+            _log.error("Error querying recent Posts (days=%d): %s", days, exc)
             raise StorageException(
-                message=(
-                    f"Unexpected error during retrieving "
-                    f"recent posts from storage: {exc}"
-                ),
-                details={
-                    "days": days,
-                },
+                message=f"Error retrieving recent Posts: {exc}",
+                details={"days": days},
             ) from exc
 
     @override
@@ -194,33 +165,22 @@ class SQLAlchemyPostStorage(PostStorage):
         Raises:
             StorageException: On unexpected errors.
         """
-        _log.debug("Retrieving all posts from storage (filters: %r)", filters)
-
+        filters = filters or {}
+        _log.debug("Querying all Posts with filters: %r", filters)
         try:
-            filters = filters or {}
             query = session.query(Post).filter_by(**filters)
             objs = list(query.all())
-
-            _log.debug(
-                "Successfully retrieved %d posts from storage (filters: %r)",
+            _log.info(
+                "Retrieved %d Posts with filters %r",
                 len(objs),
                 filters,
             )
             return objs
-
         except Exception as exc:
-            _log.error(
-                "Unexpected error during retrieving all posts from storage: %s",
-                exc,
-            )
+            _log.error("Error querying Posts with filters %r: %s", filters, exc)
             raise StorageException(
-                message=(
-                    f"Unexpected error during retrieving "
-                    f"all posts from storage: {exc}"
-                ),
-                details={
-                    "filters": filters,
-                },
+                message=f"Error retrieving Posts: {exc}",
+                details={"filters": filters},
             ) from exc
 
     @override
@@ -240,27 +200,20 @@ class SQLAlchemyPostStorage(PostStorage):
             ObjectNotFoundError: If no Post with the given pk exists.
             StorageException: On unexpected errors.
         """
-        _log.debug("Updating post from storage (pk: %s)", pk)
-
+        _log.debug("Updating Post (pk=%s) with data: %r", pk, data)
         try:
             instance = self.get(pk, session=session)
-            for k, v in data.items():
-                setattr(instance, k, v)
-
-            _log.debug("Successfully updated post from storage (pk: %s)", pk)
+            for key, value in data.items():
+                setattr(instance, key, value)
+            _log.info("Post updated (pk=%s)", pk)
             return instance
-
         except ObjectNotFoundError:
             raise
-
         except Exception as exc:
-            _log.error("Unexpected error during updating post from storage: %s", exc)
+            _log.error("Error updating Post (pk=%s): %s", pk, exc)
             raise StorageException(
-                message=f"Unexpected error during updating post from storage: {exc}",
-                details={
-                    "pk": pk,
-                    "data": data,
-                },
+                message=f"Error updating Post with pk={pk}: {exc}",
+                details={"pk": pk, "data": data},
             ) from exc
 
     @override
@@ -276,21 +229,16 @@ class SQLAlchemyPostStorage(PostStorage):
             ObjectNotFoundError: If no Post with the given pk exists.
             StorageException: On unexpected errors.
         """
-        _log.debug("Deleting post from storage (pk: %s)", pk)
-
+        _log.debug("Deleting Post (pk=%s)", pk)
         try:
             instance = self.get(pk, session=session)
             session.delete(instance)
-            _log.debug("Successfully deleted post from storage (pk: %s)", pk)
-
+            _log.info("Post deleted (pk=%s)", pk)
         except ObjectNotFoundError:
             raise
-
         except Exception as exc:
-            _log.error("Unexpected error during deleting post from storage: %s", exc)
+            _log.error("Error deleting Post (pk=%s): %s", pk, exc)
             raise StorageException(
-                message=f"Unexpected error during deleting post from storage: {exc}",
-                details={
-                    "pk": pk,
-                },
+                message=f"Error deleting Post with pk={pk}: {exc}",
+                details={"pk": pk},
             ) from exc

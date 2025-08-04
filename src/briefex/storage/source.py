@@ -37,22 +37,17 @@ class SQLAlchemySourceStorage(SourceStorage):
         Raises:
             DuplicateObjectError: If the source violates a uniqueness constraint.
         """
-        _log.debug("Adding new source to storage")
-
+        _log.debug("Adding Source to storage: %r", obj)
         try:
             session.add(obj)
+            _log.info("Source added to session (id=%s)", obj.id)
+            return obj
         except sa_exc.IntegrityError as exc:
-            _log.error("Integrity error during adding source to session: %s", exc)
+            _log.error("Integrity error adding Source to session: %s", exc)
             raise DuplicateObjectError(
-                cls=Source.__class__.__name__,
-                details={
-                    "issue": str(exc),
-                    "obj": obj,
-                },
+                cls=Source.__name__,
+                details={"issue": str(exc), "obj": obj},
             ) from exc
-
-        _log.debug("Successfully added new source to storage")
-        return obj
 
     @override
     @connect
@@ -69,22 +64,18 @@ class SQLAlchemySourceStorage(SourceStorage):
         Raises:
             DuplicateObjectError: If any source violates a uniqueness constraint.
         """
-        _log.debug("Adding all new sources to storage")
-
+        count = len(objs)
+        _log.debug("Adding %d Sources to storage", count)
         try:
             session.add_all(objs)
+            _log.info("%d Sources added to session", count)
+            return objs
         except sa_exc.IntegrityError as exc:
-            _log.error("Integrity error during adding sources to session: %s", exc)
+            _log.error("Integrity error adding %d Sources: %s", count, exc)
             raise DuplicateObjectError(
-                cls=Source.__class__.__name__,
-                details={
-                    "issue": str(exc),
-                    "objs": objs,
-                },
+                cls=Source.__name__,
+                details={"issue": str(exc), "objs": objs},
             ) from exc
-
-        _log.debug("Successfully added all new sources to storage")
-        return objs
 
     @override
     @connect
@@ -102,34 +93,22 @@ class SQLAlchemySourceStorage(SourceStorage):
             ObjectNotFoundError: If no Source with the given pk exists.
             StorageException: On unexpected errors.
         """
-        _log.debug("Retrieving source from storage (pk: %s)", pk)
-
+        _log.debug("Retrieving Source from storage (pk=%s)", pk)
         try:
             instance = session.get_one(Source, pk)
-            _log.debug("Successfully retrieved source from storage (pk: %s)", pk)
+            _log.info("Source retrieved (pk=%s)", pk)
             return instance
-
         except sa_exc.NoResultFound as exc:
+            _log.warning("No Source found with pk=%s", pk)
             raise ObjectNotFoundError(
-                cls=Source.__class__.__name__,
-                details={
-                    "pk": pk,
-                },
+                cls=Source.__name__,
+                details={"pk": pk},
             ) from exc
-
         except Exception as exc:
-            _log.error(
-                "Unexpected error during retrieving source from storage: %s",
-                exc,
-            )
+            _log.error("Error retrieving Source (pk=%s): %s", pk, exc)
             raise StorageException(
-                message=(
-                    "Unexpected error during retrieving "
-                    + f"source from storage: {exc}"
-                ),
-                details={
-                    "pk": pk,
-                },
+                message=f"Error retrieving Source with pk={pk}: {exc}",
+                details={"pk": pk},
             ) from exc
 
     @override
@@ -147,33 +126,18 @@ class SQLAlchemySourceStorage(SourceStorage):
         Raises:
             StorageException: On unexpected errors.
         """
-        _log.debug("Retrieving all sources from storage (filters: %r)", filters)
-
+        filters = filters or {}
+        _log.debug("Querying Sources with filters: %r", filters)
         try:
-            filters = filters or {}
             query = session.query(Source).filter_by(**filters)
             objs = list(query.all())
-
-            _log.debug(
-                "Successfully retrieved %d sources from storage (filters: %r)",
-                len(objs),
-                filters,
-            )
+            _log.info("Retrieved %d Sources with filters %r", len(objs), filters)
             return objs
-
         except Exception as exc:
-            _log.error(
-                "Unexpected error during retrieving all sources from storage: %s",
-                exc,
-            )
+            _log.error("Error querying Sources with filters %r: %s", filters, exc)
             raise StorageException(
-                message=(
-                    f"Unexpected error during retrieving "
-                    f"all sources from storage: {exc}"
-                ),
-                details={
-                    "filters": filters,
-                },
+                message=f"Error retrieving Sources: {exc}",
+                details={"filters": filters},
             ) from exc
 
     @override
@@ -193,27 +157,20 @@ class SQLAlchemySourceStorage(SourceStorage):
             ObjectNotFoundError: If no Source with the given pk exists.
             StorageException: On unexpected errors.
         """
-        _log.debug("Updating source from storage (pk: %s)", pk)
-
+        _log.debug("Updating Source (pk=%s) with data: %r", pk, data)
         try:
             instance = self.get(pk, session=session)
-            for k, v in data.items():
-                setattr(instance, k, v)
-
-            _log.debug("Successfully updated source from storage (pk: %s)", pk)
+            for key, value in data.items():
+                setattr(instance, key, value)
+            _log.info("Source updated (pk=%s)", pk)
             return instance
-
         except ObjectNotFoundError:
             raise
-
         except Exception as exc:
-            _log.error("Unexpected error during updating source from storage: %s", exc)
+            _log.error("Error updating Source (pk=%s): %s", pk, exc)
             raise StorageException(
-                message=f"Unexpected error during updating source from storage: {exc}",
-                details={
-                    "pk": pk,
-                    "data": data,
-                },
+                message=f"Error updating Source with pk={pk}: {exc}",
+                details={"pk": pk, "data": data},
             ) from exc
 
     @override
@@ -229,21 +186,16 @@ class SQLAlchemySourceStorage(SourceStorage):
             ObjectNotFoundError: If no Source with the given pk exists.
             StorageException: On unexpected errors.
         """
-        _log.debug("Deleting source from storage (pk: %s)", pk)
-
+        _log.debug("Deleting Source (pk=%s)", pk)
         try:
             instance = self.get(pk, session=session)
             session.delete(instance)
-            _log.debug("Successfully deleted source from storage (pk: %s)", pk)
-
+            _log.info("Source deleted (pk=%s)", pk)
         except ObjectNotFoundError:
             raise
-
         except Exception as exc:
-            _log.error("Unexpected error during deleting source from storage: %s", exc)
+            _log.error("Error deleting Source (pk=%s): %s", pk, exc)
             raise StorageException(
-                message=f"Unexpected error during deleting source from storage: {exc}",
-                details={
-                    "pk": pk,
-                },
+                message=f"Error deleting Source with pk={pk}: {exc}",
+                details={"pk": pk},
             ) from exc

@@ -52,8 +52,9 @@ def init_connection(
 
     try:
         engine = create_engine(url, echo=echo)
+        _log.info("SQLAlchemy engine created successfully")
     except Exception as exc:
-        _log.error("Unexpected error during initialization engine: %s", exc)
+        _log.error("Engine creation failed: %s", exc)
         raise StorageConfigurationError(
             issue=f"Engine initialization failed: {exc}",
             stage="engine_initialization",
@@ -66,8 +67,9 @@ def init_connection(
             autocommit=autocommit,
             expire_on_commit=expire_on_commit,
         )
+        _log.info("SessionFactory initialized successfully")
     except Exception as exc:
-        _log.error("Unexpected error during initialization SessionFactory: %s", exc)
+        _log.error("SessionFactory creation failed: %s", exc)
         raise StorageConfigurationError(
             issue=f"SessionFactory initialization failed: {exc}",
             stage="session_factory_initialization",
@@ -95,16 +97,31 @@ def connect[P, R](func: Callable[P, R]) -> Callable[P, R]:
         Raises:
             Exception: Propagates exceptions after rolling back the session.
         """
+        if SessionFactory is None:
+            _log.error(
+                "SessionFactory is not initialized before calling %s",
+                func.__name__,
+            )
+            raise StorageConfigurationError(
+                issue="SessionFactory is not initialized",
+                stage="connect_decorator",
+            )
+
+        _log.debug("Opening database session for %s", func.__name__)
         with SessionFactory() as session:
             kwargs["session"] = session
-
             try:
                 result: R = func(*args, **kwargs)
                 session.commit()
+                _log.debug("Transaction committed for %s", func.__name__)
                 return result
             except Exception as exc:
-                _log.error("Unexpected error during calling %s: %s", func.__name__, exc)
                 session.rollback()
+                _log.warning(
+                    "Transaction rolled back for %s due to error: %s",
+                    func.__name__,
+                    exc,
+                )
                 raise
 
     return wrapper
