@@ -24,6 +24,7 @@ pgvector = "^0.4.1"
 yandex-cloud-ml-sdk = "^0.12.0"
 gigachat = "^0.1.40"
 celery = {extras = ["redis"], version = "^5.5.3"}
+flower = "^2.0.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"

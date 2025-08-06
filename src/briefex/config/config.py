@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import BaseModel, Field, PostgresDsn
+from pydantic import BaseModel, Field, PostgresDsn, RedisDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -113,6 +113,19 @@ class SQLAlchemyConfig(BaseModel):
     expire_on_commit: bool = Field(description="Expire objects on commit")
 
 
+class CeleryConfig(BaseModel):
+    """Configuration for Celery task queue settings."""
+
+    broker_url: RedisDsn = Field(description="Broker URL")
+    result_backend: RedisDsn = Field(description="Result backend URL")
+    task_serializer: str = Field(description="Task serializer")
+    result_serializer: str = Field(description="Result serializer")
+    accept_content: list[str] = Field(description="Accept content")
+    timezone: str = Field(description="Timezone")
+    enable_utc: bool = Field(description="Enable UTC")
+    hijack_root_logger: bool = Field(description="Hijack root logger")
+
+
 class Settings(BaseSettings):
     """Main application settings class.
 
@@ -130,6 +143,7 @@ class Settings(BaseSettings):
     intelligence: IntelligenceConfig = Field(default_factory=IntelligenceConfig)
     llm: LLMConfig = Field(default_factory=LLMConfig)
     sqlalchemy: SQLAlchemyConfig = Field(default_factory=SQLAlchemyConfig)
+    celery: CeleryConfig = Field(default_factory=CeleryConfig)
 
     model_config = SettingsConfigDict(
         case_sensitive=False,
