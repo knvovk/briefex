@@ -1,53 +1,27 @@
-# Python
+### Python
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-
-# Distribution / packaging
+*.egg-info/
 dist/
 build/
-*.egg-info/
-*.egg
 
-# Virtual environments
+### Environment
+.env
+.env.*
+logging.ini
 venv/
-env/
-.env/
 .venv/
-ENV/
+celerybeat-schedule
 
-# Configuration
-src/briefex/config/*.env
-src/briefex/config/*.toml
-src/briefex/config/*.ini
-
-# IDE
-.idea/
+### IDE / Editor
 .vscode/
-*.swp
-*.swo
-.project
-.pydevproject
-.settings/
+.idea/
+*.sublime-project
+*.sublime-workspace
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-coverage.xml
-*.cover
-.pytest_cache/
-
-# Logs
-*.log
-logs/
-
-# OS specific
+### OS
 .DS_Store
 Thumbs.db
-*.bak
-*.tmp
-*~
+
+### Logs
+*.log

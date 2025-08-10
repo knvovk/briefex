@@ -1,0 +1,19 @@
+### Git
+.git
+.gitignore
+
+### Python
+venv
+.venv
+
+### Environment
+.env
+.env.*
+
+### IDE / Editor
+.vscode
+.idea
+
+### OS
+.DS_Store
+Thumbs.db
