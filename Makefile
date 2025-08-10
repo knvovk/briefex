@@ -19,13 +19,13 @@ down:
 	$(DC) down
 
 restart:
-	$(DC) restart db
+	$(DC) restart
 
 ps:
 	$(DC) ps
 
 logs:
-	$(DC) logs -f db
+	$(DC) logs -f
 
 # --- Alembic Management ---------------------------------------------------------------
 .PHONY: alembic-rev alembic-up alembic-up-to alembic-down alembic-history
