@@ -4,7 +4,8 @@ import functools
 
 from briefex.config import load_settings
 from briefex.storage import init_connection
-from briefex.workflow import CrawlWorkflow, SummarizeWorkflow
+from briefex.workflow.crawl import CrawlWorkflow
+from briefex.workflow.summarize import SummarizeWorkflow
 
 settings = load_settings()
 
