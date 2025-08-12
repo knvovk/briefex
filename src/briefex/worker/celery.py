@@ -41,9 +41,8 @@ app.conf.update(
 @signals.worker_process_init.connect
 def init_db_connection(**_: object) -> None:
     init_connection(
-        url=str(settings.sqlalchemy.url),
+        url=settings.sqlalchemy.sqlalchemy_url,
         echo=settings.sqlalchemy.echo,
         autoflush=settings.sqlalchemy.autoflush,
-        autocommit=settings.sqlalchemy.autocommit,
         expire_on_commit=settings.sqlalchemy.expire_on_commit,
     )

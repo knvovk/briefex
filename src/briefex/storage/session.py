@@ -25,7 +25,6 @@ def init_connection(
     url: str,
     echo: bool,
     autoflush: bool,
-    autocommit: bool,
     expire_on_commit: bool,
 ) -> None:
     """Initialize the global SQLAlchemy engine and session factory.
@@ -34,7 +33,6 @@ def init_connection(
         url: Database URL for the engine.
         echo: Flag to enable SQL statement logging.
         autoflush: Enable autoflush on session.
-        autocommit: Enable autocommit on session.
         expire_on_commit: Expire objects on commit.
 
     Raises:
@@ -44,11 +42,10 @@ def init_connection(
 
     _log.info(
         "Initializing database connection "
-        "(url=%s, echo=%s, autoflush=%s, autocommit=%s, expire_on_commit=%s)",
+        "(url=%s, echo=%s, autoflush=%s, expire_on_commit=%s)",
         url,
         echo,
         autoflush,
-        autocommit,
         expire_on_commit,
     )
 
@@ -66,7 +63,6 @@ def init_connection(
         SessionFactory = sessionmaker(
             bind=engine,
             autoflush=autoflush,
-            autocommit=autocommit,
             expire_on_commit=expire_on_commit,
         )
         _log.info("SessionFactory initialized successfully")
