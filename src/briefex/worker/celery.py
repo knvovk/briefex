@@ -3,9 +3,13 @@ from __future__ import annotations
 import logging.config
 from pathlib import Path
 
-from celery import Celery, signals
+ini = Path(__file__).parent.parent / "config" / "logging.ini"
+logging.config.fileConfig(ini, disable_existing_loggers=False)
 
-from briefex.config import load_settings
+from celery import Celery, signals  # noqa: E402
+
+from briefex.config import load_settings  # noqa: E402
+from briefex.storage import init_connection  # noqa: E402
 
 settings = load_settings()
 
@@ -34,7 +38,12 @@ app.conf.update(
 )
 
 
-@signals.setup_logging.connect
-def setup_logging(**_: object) -> None:
-    ini = Path(__file__).parent.parent / "config" / "logging.ini"
-    logging.config.fileConfig(ini)
+@signals.worker_process_init.connect
+def init_db_connection(**_: object) -> None:
+    init_connection(
+        url=str(settings.sqlalchemy.url),
+        echo=settings.sqlalchemy.echo,
+        autoflush=settings.sqlalchemy.autoflush,
+        autocommit=settings.sqlalchemy.autocommit,
+        expire_on_commit=settings.sqlalchemy.expire_on_commit,
+    )

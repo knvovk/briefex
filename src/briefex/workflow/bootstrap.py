@@ -3,19 +3,10 @@ from __future__ import annotations
 import functools
 
 from briefex.config import load_settings
-from briefex.storage import init_connection
 from briefex.workflow.crawl import CrawlWorkflow
 from briefex.workflow.summarize import SummarizeWorkflow
 
 settings = load_settings()
-
-init_connection(
-    url=str(settings.sqlalchemy.url),
-    echo=settings.sqlalchemy.echo,
-    autoflush=settings.sqlalchemy.autoflush,
-    autocommit=settings.sqlalchemy.autocommit,
-    expire_on_commit=settings.sqlalchemy.expire_on_commit,
-)
 
 
 @functools.lru_cache(maxsize=1)
