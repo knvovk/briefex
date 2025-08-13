@@ -20,7 +20,7 @@ DEFAULT_SOURCES: list[dict[str, str | SourceType]] = [
         "name": "RT на русском",
         "code_name": "rt::html",
         "type": SourceType.HTML,
-        "url": "https://russian.rt.com/news/",
+        "url": "https://russian.rt.com/news",
     }
 ]
 
