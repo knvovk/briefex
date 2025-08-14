@@ -15,6 +15,9 @@ Model = Literal[
     "GigaChat-2",
     "GigaChat-2-Pro",
     "GigaChat-2-Max",
+    "STUB",
+    "Stub",
+    "stub",
 ]
 """Supported model identifiers for chat completion."""
 

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
+import importlib
 from typing import Any
 
-import briefex.llm.sber
-import briefex.llm.yandex  # noqa: F401
 from briefex.llm.base import Provider, ProviderFactory
 from briefex.llm.exceptions import (
     LLMAuthenticationError,
@@ -23,6 +22,10 @@ from briefex.llm.models import (
     Model,
     Role,
 )
+
+importlib.import_module("briefex.llm.sber")
+importlib.import_module("briefex.llm.stub")
+importlib.import_module("briefex.llm.yandex")
 
 _provider_factory: ProviderFactory | None = None
 
