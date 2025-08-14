@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from briefex.worker.celery import app
-from briefex.workflow import create_crawl_workflow, create_summarize_workflow
+from briefex.workflow import (
+    create_clean_workflow,
+    create_crawl_workflow,
+    create_summarize_workflow,
+)
 
 
 @app.task(
@@ -26,5 +30,12 @@ def summarize() -> None:
     create_summarize_workflow().run()
 
 
-@app.task
-def clean(): ...
+@app.task(
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_jitter=True,
+    retry_backoff_max=600,
+    max_retries=5,
+)
+def clean():
+    create_clean_workflow().run()

@@ -34,7 +34,7 @@ class CrawlWorkflow(Workflow):
                 "crawler": crawl,
                 "post_storage": post_storage,
                 "source_storage": source_storage,
-                "recent_posts_days": lookback_days,
+                "lookback_days": lookback_days,
             }
         )
         super().__init__(*[], **kwargs)

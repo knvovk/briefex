@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 
 from briefex.config import load_settings
+from briefex.workflow.clean import CleanWorkflow
 from briefex.workflow.crawl import CrawlWorkflow
 from briefex.workflow.summarize import SummarizeWorkflow
 
@@ -80,3 +81,14 @@ def create_summarize_workflow() -> SummarizeWorkflow:
         post_storage=post_storage,
         summarizer=summarizer,
     )
+
+
+@functools.lru_cache(maxsize=1)
+def create_clean_workflow() -> CleanWorkflow:
+    """Configure and return a cached CleanWorkflow instance."""
+    from briefex.storage import get_default_post_storage_factory
+
+    post_storage_factory = get_default_post_storage_factory()
+    post_storage = post_storage_factory.create()
+
+    return CleanWorkflow(post_storage=post_storage)
