@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, override
 
+from pydantic import SecretStr
 from yandex_cloud_ml_sdk import YCloudML
 from yandex_cloud_ml_sdk._models.completions.result import (
     AlternativeStatus,
@@ -133,10 +134,22 @@ class YandexGPT(Provider):
                 provider=provider_name,
             ) from exc
 
-    def _get_configured_client(self, folder_id: str, api_key: str) -> YCloudML:
+    def _get_configured_client(
+        self,
+        folder_id: str,
+        api_key: str | SecretStr,
+    ) -> YCloudML:
         """Instantiate and configure the YCloudML client for requests."""
         try:
-            client = YCloudML(folder_id=folder_id, auth=APIKeyAuth(api_key))
+            if isinstance(api_key, SecretStr):
+                api_key_value = api_key.get_secret_value()
+            else:
+                api_key_value = api_key
+
+            client = YCloudML(
+                folder_id=folder_id,
+                auth=APIKeyAuth(api_key_value),
+            )
             _log.info("YCloudML client initialized successfully")
             return client
 

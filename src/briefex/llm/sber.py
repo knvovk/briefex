@@ -6,6 +6,7 @@ from typing import override
 import gigachat as sdk
 import httpx
 from gigachat import models as sdk_models
+from pydantic import SecretStr
 
 from briefex.llm.base import Provider
 from briefex.llm.exceptions import (
@@ -156,13 +157,19 @@ class GigaChat(Provider):
                 self._model,
                 self._scope,
             )
+            if isinstance(self._credentials, SecretStr):
+                credentials = self._credentials.get_secret_value()
+            else:
+                credentials = self._credentials
+
             return sdk.GigaChat(
-                credentials=self._credentials,
+                credentials=credentials,
                 scope=self._scope,
                 model=self._model,
                 verify_ssl_certs=self._verify_ssl_certs,
                 timeout=self._timeout,
             )
+
         except Exception as exc:
             _log.error("Failed to instantiate GigaChat client: %s", exc)
             raise LLMConfigurationError(
