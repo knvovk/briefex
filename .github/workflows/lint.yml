@@ -34,6 +34,7 @@ jobs:
 
       - name: Verify Poetry
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           poetry --version
           poetry check
 
