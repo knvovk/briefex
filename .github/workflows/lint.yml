@@ -35,4 +35,4 @@ jobs:
 #        run: ruff format --check .
 
       - name: Ruff lint
-        run: ruff . --output-format=github
+        run: ruff check . --output-format=github
