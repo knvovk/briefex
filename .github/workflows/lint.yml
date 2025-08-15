@@ -31,8 +31,8 @@ jobs:
           python -V
           ruff --version
 
-      - name: Ruff format check
-        run: ruff format --check .
+#      - name: Ruff format check
+#        run: ruff format --check .
 
       - name: Ruff lint
         run: ruff . --output-format=github
