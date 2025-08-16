@@ -23,48 +23,34 @@ alembic = "^1.16.1"
 pgvector = "^0.4.1"
 yandex-cloud-ml-sdk = "^0.12.0"
 gigachat = "^0.1.40"
-celery = {extras = ["redis"], version = "^5.5.3"}
+celery = { extras = ["redis"], version = "^5.5.3" }
 flower = "^2.0.1"
 
 [tool.poetry.group.dev.dependencies]
-black = "^25.1.0"
-isort = "^5.13.2"
 ruff = "^0.12.4"
 pre-commit = "^4.2.0"
-
-[tool.black]
-line-length = 88
-target-version = ['py313']
-include = '\.pyi?$'
-skip-string-normalization = false
-skip-magic-trailing-comma = false
-preview = true
-exclude = '''
-/(
-    \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
-'''
-
-[tool.isort]
-profile = "black"
-line_length = 88
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-use_parentheses = true
-ensure_newline_before_comments = true
 
 [tool.ruff]
 line-length = 88
 target-version = "py313"
+exclude = [
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".tox",
+    ".venv",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+line-ending = "auto"
+indent-style = "space"
+docstring-code-format = true
+docstring-code-line-length = 88
 
 [tool.ruff.lint]
 select = [
@@ -85,6 +71,16 @@ select = [
     "UP", # pyupgrade
 ]
 ignore = ["E203"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["briefex"]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
 
 [build-system]
 requires = ["poetry-core"]
