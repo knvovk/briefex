@@ -43,6 +43,7 @@ exclude = [
     "buck-out",
     "build",
     "dist",
+    "migrations",
 ]
 
 [tool.ruff.format]
