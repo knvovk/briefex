@@ -10,8 +10,8 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends build-essential gcc libpq-dev curl ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-RUN python -m pip install --upgrade pip setuptools wheel poetry  \
-    "poetry-plugin-export==1.8.0"
+RUN python -m pip install --upgrade pip setuptools wheel \
+    "poetry==1.8.3" "poetry-plugin-export==1.8.0"
 
 WORKDIR /app
 
@@ -27,7 +27,7 @@ COPY scripts/ /app/scripts/
 FROM python:3.13-slim AS runtime
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends libpq5 tini && \
+    apt-get install -y --no-install-recommends libpq5 tini ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 ENV PATH="/home/briefex/.local/bin:${PATH}" \
@@ -41,8 +41,7 @@ WORKDIR /app
 COPY --from=builder /wheels /wheels
 COPY --from=builder /app/requirements.txt /app/requirements.txt
 
-RUN python -m pip install --upgrade pip && \
-    python -m pip install --no-index --find-links=/wheels -r /app/requirements.txt && \
+RUN python -m pip install --no-index --find-links=/wheels -r /app/requirements.txt && \
     rm -rf /wheels
 
 COPY --from=builder /app/src/ /app/src/
