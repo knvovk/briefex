@@ -1,44 +1,57 @@
-# ==== Builder ====
+# ---------- Builder ----------
 FROM python:3.13-slim AS builder
 
-ENV PIP_NO_CACHE_DIR=1 \
-    POETRY_VERSION=1.8.3
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends build-essential curl git libpq-dev && \
+    apt-get install -y --no-install-recommends build-essential gcc libpq-dev curl ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}"
+RUN python -m pip install --upgrade pip setuptools wheel poetry  \
+    "poetry-plugin-export==1.8.0"
 
 WORKDIR /app
 
-COPY pyproject.toml poetry.lock* ./
+COPY pyproject.toml poetry.lock* /app/
 
-RUN poetry export --only main -f requirements.txt \
-    -o /tmp/requirements.txt --without-hashes
+RUN poetry export -f requirements.txt --only main -o /app/requirements.txt && \
+    pip wheel --no-cache-dir --wheel-dir /wheels -r /app/requirements.txt
 
-# ==== Runtime ====
+COPY src/ /app/src/
+COPY scripts/ /app/scripts/
+
+# ---------- Runtime ----------
 FROM python:3.13-slim AS runtime
 
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1
-
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends libpq5 && \
+    apt-get install -y --no-install-recommends libpq5 tini && \
     rm -rf /var/lib/apt/lists/*
 
-RUN groupadd -g 10001 briefex && useradd -r -u 10001 -g briefex briefex
+ENV PATH="/home/briefex/.local/bin:${PATH}" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+RUN useradd --create-home --shell /bin/bash briefex
 
 WORKDIR /app
 
-COPY --from=builder /tmp/requirements.txt /tmp/requirements.txt
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r /tmp/requirements.txt
+COPY --from=builder /wheels /wheels
+COPY --from=builder /app/requirements.txt /app/requirements.txt
 
-COPY --chown=briefex:briefex src ./src
-COPY --chown=briefex:briefex scripts ./scripts
+RUN python -m pip install --upgrade pip && \
+    python -m pip install --no-index --find-links=/wheels -r /app/requirements.txt && \
+    rm -rf /wheels
+
+COPY --from=builder /app/src/ /app/src/
+COPY --from=builder /app/scripts/ /app/scripts/
+
+RUN chown -R briefex:briefex /app
 
 USER briefex
 
-CMD ["python", "-c", "print('briefex image ready; override CMD in compose')"]
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+CMD ["python", "-c", "import sys; print('Set CMD in compose (worker/beat)'); sys.exit(1)"]
