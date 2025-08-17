@@ -1,15 +1,11 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from pathlib import Path
 from typing import ClassVar
 from urllib.parse import urlsplit
 
 from pydantic import BaseModel, Field, RedisDsn, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-BASE_DIR = Path(__file__).resolve().parent
-ENV_PATH = BASE_DIR / ".env"
 
 
 class CrawlerConfig(BaseModel):
@@ -193,8 +189,6 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         case_sensitive=False,
         env_prefix="BRIEFEX_",
-        env_file=ENV_PATH,
-        env_file_encoding="utf-8",
         env_nested_delimiter="__",
         extra="ignore",
     )
