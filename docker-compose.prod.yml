@@ -1,0 +1,131 @@
+x-common-env: &common-env
+  environment:
+    BRIEFEX_CRAWLER__REQ_TIMEOUT: ${BRIEFEX_CRAWLER__REQ_TIMEOUT}
+    BRIEFEX_CRAWLER__POOL_CONN: ${BRIEFEX_CRAWLER__POOL_CONN}
+    BRIEFEX_CRAWLER__POOL_MAX_SIZE: ${BRIEFEX_CRAWLER__POOL_MAX_SIZE}
+    BRIEFEX_CRAWLER__MAX_RETRIES: ${BRIEFEX_CRAWLER__MAX_RETRIES}
+    BRIEFEX_CRAWLER__RETRY_DELAY: ${BRIEFEX_CRAWLER__RETRY_DELAY}
+    BRIEFEX_CRAWLER__MAX_RETRY_DELAY: ${BRIEFEX_CRAWLER__MAX_RETRY_DELAY}
+    BRIEFEX_CRAWLER__LOOKBACK_DAYS: ${BRIEFEX_CRAWLER__LOOKBACK_DAYS}
+
+    BRIEFEX_INTELLIGENCE__SUMMARIZATION_PROMPT: ${BRIEFEX_INTELLIGENCE__SUMMARIZATION_PROMPT}
+    BRIEFEX_INTELLIGENCE__SUMMARIZATION_MODEL: ${BRIEFEX_INTELLIGENCE__SUMMARIZATION_MODEL}
+    BRIEFEX_INTELLIGENCE__SUMMARIZATION_TEMPERATURE: ${BRIEFEX_INTELLIGENCE__SUMMARIZATION_TEMPERATURE}
+    BRIEFEX_INTELLIGENCE__SUMMARIZATION_MAX_TOKENS: ${BRIEFEX_INTELLIGENCE__SUMMARIZATION_MAX_TOKENS}
+    BRIEFEX_INTELLIGENCE__SUMMARIZATION_TOP_P: ${BRIEFEX_INTELLIGENCE__SUMMARIZATION_TOP_P}
+
+    BRIEFEX_LLM__GIGACHAT_CLIENT_ID: ${BRIEFEX_LLM__GIGACHAT_CLIENT_ID}
+    BRIEFEX_LLM__GIGACHAT_CLIENT_SECRET: ${BRIEFEX_LLM__GIGACHAT_CLIENT_SECRET}
+    BRIEFEX_LLM__GIGACHAT_AUTH_KEY: ${BRIEFEX_LLM__GIGACHAT_AUTH_KEY}
+    BRIEFEX_LLM__GIGACHAT_MODEL: ${BRIEFEX_LLM__GIGACHAT_MODEL}
+    BRIEFEX_LLM__GIGACHAT_SCOPE: ${BRIEFEX_LLM__GIGACHAT_SCOPE}
+    BRIEFEX_LLM__GIGACHAT_VERIFY_SSL_CERTS: ${BRIEFEX_LLM__GIGACHAT_VERIFY_SSL_CERTS}
+
+    BRIEFEX_LLM__YANDEX_GPT_FOLDER_ID: ${BRIEFEX_LLM__YANDEX_GPT_FOLDER_ID}
+    BRIEFEX_LLM__YANDEX_GPT_API_KEY: ${BRIEFEX_LLM__YANDEX_GPT_API_KEY}
+
+    BRIEFEX_SQLALCHEMY__URL: ${BRIEFEX_SQLALCHEMY__URL}
+    BRIEFEX_SQLALCHEMY__ECHO: ${BRIEFEX_SQLALCHEMY__ECHO}
+    BRIEFEX_SQLALCHEMY__AUTOFLUSH: ${BRIEFEX_SQLALCHEMY__AUTOFLUSH}
+    BRIEFEX_SQLALCHEMY__EXPIRE_ON_COMMIT: ${BRIEFEX_SQLALCHEMY__EXPIRE_ON_COMMIT}
+
+    BRIEFEX_CELERY__APP: ${BRIEFEX_CELERY__APP}
+    BRIEFEX_CELERY__BROKER_URL: ${BRIEFEX_CELERY__BROKER_URL}
+    BRIEFEX_CELERY__RESULT_BACKEND: ${BRIEFEX_CELERY__RESULT_BACKEND}
+    BRIEFEX_CELERY__TASK_SERIALIZER: ${BRIEFEX_CELERY__TASK_SERIALIZER}
+    BRIEFEX_CELERY__RESULT_SERIALIZER: ${BRIEFEX_CELERY__RESULT_SERIALIZER}
+    BRIEFEX_CELERY__ACCEPT_CONTENT: ${BRIEFEX_CELERY__ACCEPT_CONTENT}
+    BRIEFEX_CELERY__TIMEZONE: ${BRIEFEX_CELERY__TIMEZONE}
+    BRIEFEX_CELERY__ENABLE_UTC: ${BRIEFEX_CELERY__ENABLE_UTC}
+    BRIEFEX_CELERY__WORKER_HIJACK_ROOT_LOGGER: ${BRIEFEX_CELERY__WORKER_HIJACK_ROOT_LOGGER}
+
+    PYTHONPATH: /app/src
+
+x-common-logging: &common-logging
+  logging:
+    driver: "local"
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+x-security: &security
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  tmpfs:
+    - /tmp:size=64m,mode=1777
+    - /run:size=16m,mode=0755
+
+x-deploy: &deploy-prod
+  restart: always
+  deploy:
+    resources:
+      limits:
+        cpus: "1.0"
+        memory: "1g"
+      reservations:
+        cpus: "0.25"
+        memory: "256m"
+
+networks:
+  internal:
+    internal: true
+
+volumes:
+  redis_data:
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: [ "redis-server", "--appendonly", "yes" ]
+    <<: *common-logging
+    networks: [ internal ]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  celery_worker:
+    image: your-registry/briefex:latest
+    <<: [ *common-env, *common-logging, *security, *deploy-prod ]
+    networks: [ internal ]
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "celery -A \"$${BRIEFEX_CELERY__APP}\" inspect ping -d celery@$$(hostname) || celery -A \"$${BRIEFEX_CELERY__APP}\" inspect ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    command: >
+      celery -A "${BRIEFEX_CELERY__APP}" worker
+      --loglevel="INFO"
+      --without-gossip
+      --without-mingle
+      --hostname=celery@%h
+
+  celery_beat:
+    image: your-registry/briefex:latest
+    <<: [ *common-env, *common-logging, *security, *deploy-prod ]
+    networks: [ internal ]
+    depends_on:
+      redis:
+        condition: service_healthy
+      celery_worker:
+        condition: service_started
+    healthcheck:
+      test: [ "CMD-SHELL", "celery -A \"$${BRIEFEX_CELERY__APP}\" beat --help >/dev/null 2>&1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    command: >
+      celery -A "${BRIEFEX_CELERY__APP}" beat
+      --loglevel="INFO"
+      --scheduler celery.beat:PersistentScheduler
+      --schedule /tmp/celerybeat-schedule
