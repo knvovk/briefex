@@ -1,12 +1,12 @@
-name: CI
+name: Lint
 
 on:
   pull_request:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: lint-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
