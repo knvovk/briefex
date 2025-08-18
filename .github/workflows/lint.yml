@@ -20,12 +20,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-      
+
       - name: Ruff lint
         uses: astral-sh/ruff-action@v3
         with:
           args: check --output-format=github
-      
+
       - name: Ruff format
         uses: astral-sh/ruff-action@v3
         with:
