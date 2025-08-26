@@ -1,13 +1,21 @@
-name: Publish image to GHCR (single-arch)
+name: CI (lint + publish)
 
 on:
   push:
-    tags: [ "v*" ]
     branches: [ "main" ]
-  workflow_dispatch:
+    tags: [ "v*" ]
+    paths:
+      - "**/*.py"
+      - "pyproject.toml"
+      - "poetry.lock"
+      - "requirements*.txt"
+      - ".ruff.toml"
+      - "Dockerfile"
+      - "docker/**"
+      - ".github/workflows/ci.yml"
 
 concurrency:
-  group: publish-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -18,8 +26,29 @@ env:
   IMAGE: ghcr.io/${{ github.repository }}
 
 jobs:
-  build-and-push:
+  ruff:
+    name: Ruff checks
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Ruff lint
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: check --output-format=github
+
+      - name: Ruff format (verify no diffs)
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: format --check
+
+  build_and_push:
+    name: Build & push image to GHCR
+    runs-on: ubuntu-latest
+    needs: ruff
+    if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -27,7 +56,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -45,7 +74,7 @@ jobs:
           flavor: |
             latest=auto
           labels: |
-            org.opencontainers.image.title=BriefEx
+            org.opencontainers.image.title=${{ github.event.repository.name }}
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.version={{version}}
             org.opencontainers.image.revision=${{ github.sha }}
@@ -59,3 +88,5 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
